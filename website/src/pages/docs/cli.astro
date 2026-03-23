@@ -2,10 +2,10 @@
 import DocsLayout from '../../layouts/DocsLayout.astro';
 ---
 
-<DocsLayout title="CLI Reference" description="lean-ctx v1.1.0 command-line interface — MCP server, shell hook, CLI commands, and persistent stats.">
+<DocsLayout title="CLI Reference" description="lean-ctx v1.1.1 command-line interface — MCP server, shell hook, CLI commands, and persistent stats.">
   <p>
     lean-ctx is a single Rust binary that operates in multiple modes depending on the command-line arguments.
-    In v1.1.0 it includes a full set of CLI commands alongside the MCP server and shell hook.
+    It includes a full set of CLI commands alongside the MCP server and shell hook.
   </p>
 
   <h2>Usage</h2>
@@ -84,7 +84,7 @@ lean-ctx --shell</code></pre>
 
   <h3>--version</h3>
   <pre><code>lean-ctx --version
-# lean-ctx 1.1.0</code></pre>
+# lean-ctx 1.1.1</code></pre>
 
   <h3>--help</h3>
   <pre><code>lean-ctx --help</code></pre>
@@ -107,7 +107,7 @@ lean-ctx --shell</code></pre>
 
   <h2>Persistent Stats</h2>
   <p>
-    Starting with v1.1.0, lean-ctx tracks savings persistently in <code>~/.lean-ctx/stats.json</code>.
+    lean-ctx tracks savings persistently in <code>~/.lean-ctx/stats.json</code>.
     Every MCP session and shell hook invocation contributes to the cumulative stats.
     Use <code>lean-ctx gain</code> to view the dashboard at any time.
   </p>

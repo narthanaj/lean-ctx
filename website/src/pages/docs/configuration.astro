@@ -15,20 +15,24 @@ import DocsLayout from '../../layouts/DocsLayout.astro';
   </p>
 
   <h2>Shell Hook Configuration</h2>
-  <p>
-    Add shell aliases to your <code>.zshrc</code> or <code>.bashrc</code>:
-  </p>
+  <p>The fastest way is automatic setup:</p>
+  <pre><code>lean-ctx init --global</code></pre>
+  <p>Or add aliases manually to your <code>.zshrc</code> or <code>.bashrc</code>:</p>
   <pre><code>alias git='lean-ctx -c git'
 alias npm='lean-ctx -c npm'
 alias cargo='lean-ctx -c cargo'
-alias docker='lean-ctx -c docker'</code></pre>
+alias docker='lean-ctx -c docker'
+alias grep='lean-ctx -c grep'
+alias find='lean-ctx -c find'
+alias ls='lean-ctx -c ls'
+alias curl='lean-ctx -c curl'</code></pre>
 
   <p>Or use lean-ctx as a Cursor terminal profile:</p>
   <pre><code>{`{
   "terminal.integrated.profiles.osx": {
     "lean-ctx": {
       "path": "/path/to/lean-ctx",
-      "args": ["--shell"],
+      "args": ["shell"],
       "icon": "terminal"
     }
   }
@@ -46,16 +50,24 @@ alias docker='lean-ctx -c docker'</code></pre>
     task parsing and one-hypothesis reasoning.
   </p>
 
-  <h2>Command-Line Flags</h2>
+  <h2>Command-Line Reference</h2>
+  <p>For the full CLI reference, see the <a href="/docs/cli">CLI documentation</a>.</p>
   <table>
     <thead>
-      <tr><th>Flag</th><th>Description</th></tr>
+      <tr><th>Command</th><th>Description</th></tr>
     </thead>
     <tbody>
-      <tr><td><code>lean-ctx</code></td><td>Start MCP server (default mode, used by editors)</td></tr>
+      <tr><td><code>lean-ctx</code></td><td>Start MCP server (default, used by editors)</td></tr>
+      <tr><td><code>lean-ctx init --global</code></td><td>Install shell aliases globally</td></tr>
+      <tr><td><code>lean-ctx gain</code></td><td>Show persistent token savings dashboard</td></tr>
       <tr><td><code>lean-ctx -c &lt;command&gt;</code></td><td>Execute command with compressed output</td></tr>
-      <tr><td><code>lean-ctx exec &lt;command&gt;</code></td><td>Same as <code>-c</code></td></tr>
-      <tr><td><code>lean-ctx --shell</code></td><td>Interactive shell with compression</td></tr>
+      <tr><td><code>lean-ctx shell</code></td><td>Interactive shell with compression</td></tr>
+      <tr><td><code>lean-ctx read &lt;file&gt; [-m mode]</code></td><td>Read file with compression (modes: full, map, signatures, aggressive, entropy)</td></tr>
+      <tr><td><code>lean-ctx diff &lt;file1&gt; &lt;file2&gt;</code></td><td>Compressed file diff</td></tr>
+      <tr><td><code>lean-ctx grep &lt;pattern&gt; [path]</code></td><td>Compressed search</td></tr>
+      <tr><td><code>lean-ctx find &lt;pattern&gt; [path]</code></td><td>Compact file finder</td></tr>
+      <tr><td><code>lean-ctx ls [path]</code></td><td>Token-optimized directory listing</td></tr>
+      <tr><td><code>lean-ctx deps [path]</code></td><td>Project dependencies summary</td></tr>
       <tr><td><code>lean-ctx --version</code></td><td>Print version</td></tr>
       <tr><td><code>lean-ctx --help</code></td><td>Print usage information</td></tr>
     </tbody>

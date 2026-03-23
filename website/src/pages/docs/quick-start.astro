@@ -27,10 +27,14 @@ import DocsLayout from '../../layouts/DocsLayout.astro';
   <h2>Step 4: Restart and Verify</h2>
   <p>Restart your editor. The lean-ctx tools will appear in the MCP tool list.</p>
 
-  <p>Try running a benchmark to verify:</p>
-  <pre><code>ctx_benchmark /path/to/your/project/src/index.ts</code></pre>
+  <p>Test the shell hook from the terminal:</p>
+  <pre><code>git status
+lean-ctx gain</code></pre>
 
-  <p>You should see a table comparing raw tokens vs. each compression strategy.</p>
+  <p>
+    Inside your editor, use the <code>ctx_benchmark</code> MCP tool on any file
+    to see token savings for each compression strategy.
+  </p>
 
   <h2>Step 5: Monitor Savings</h2>
   <pre><code>lean-ctx gain</code></pre>

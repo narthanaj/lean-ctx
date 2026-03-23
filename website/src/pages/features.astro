@@ -13,7 +13,7 @@ const tools = [
       { name: 'map', desc: 'Dependency graph + exports + API signatures. Use for context files you won\'t edit. Structured headers show imports/exports at a glance.', savings: '85-95%' },
       { name: 'signatures', desc: 'Extracts function signatures, interfaces, types, and exports. More detail than map mode. Supports TS/JS, Rust, Python, Go.', savings: '83-96%' },
       { name: 'diff', desc: 'Returns only lines that changed since the last read. Perfect for monitoring edits.', savings: '70-95%' },
-      { name: 'aggressive', desc: 'Full content with syntax stripping: reduced indentation, removed redundant type annotations.', savings: '20-40%' },
+      { name: 'aggressive', desc: 'Full content with syntax stripping: reduced indentation, removed comments, stripped empty lines.', savings: '20-40%' },
       { name: 'entropy', desc: 'Shannon entropy filtering removes low-information lines. Jaccard deduplication collapses similar blocks.', savings: '60-85%' },
     ],
     example: {
