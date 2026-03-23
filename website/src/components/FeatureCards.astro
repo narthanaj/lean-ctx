@@ -4,17 +4,9 @@ const features = [
     title: 'ctx_read',
     subtitle: 'Smart File Read',
     savings: '89-99%',
-    description: '4 modes: cached reads, signatures-only, diff-updates, and aggressive compression. Re-reads cost 13 tokens instead of thousands.',
+    description: '5 modes: cached reads, signatures-only, diff-updates, entropy filtering, and aggressive compression. Re-reads cost 13 tokens instead of thousands.',
     gradient: 'from-accent/20 to-accent-2/10',
     icon: `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/>`,
-  },
-  {
-    title: 'ctx_tree',
-    subtitle: 'Project Map',
-    savings: '40%',
-    description: 'Token-efficient directory listings using indentation instead of Unicode box-drawing. Shows file counts per directory.',
-    gradient: 'from-accent-2/20 to-accent-3/10',
-    icon: `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z"/>`,
   },
   {
     title: 'ctx_shell',
@@ -25,18 +17,34 @@ const features = [
     icon: `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6.75 7.5l3 2.25-3 2.25m4.5 0h3m-9 8.25h13.5A2.25 2.25 0 0021.75 18V6a2.25 2.25 0 00-2.25-2.25H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25z"/>`,
   },
   {
+    title: 'ctx_tree',
+    subtitle: 'Project Map',
+    savings: '40%',
+    description: 'Token-efficient directory listings using indentation and file counts. The LLM sees structure without reading every file path.',
+    gradient: 'from-accent-2/20 to-accent-3/10',
+    icon: `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z"/>`,
+  },
+  {
     title: 'ctx_compress',
     subtitle: 'Context Checkpoint',
     savings: '90-95%',
-    description: 'Compresses all cached files into an ultra-compact signature map. Acts as a memory checkpoint for long conversations.',
+    description: 'Compresses all cached files into an ultra-compact signature map. Memory checkpoint for long conversations.',
     gradient: 'from-accent/20 to-accent-3/10',
     icon: `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375m16.5 0v3.75m-16.5-3.75v3.75m16.5 0v3.75C20.25 16.153 16.556 18 12 18s-8.25-1.847-8.25-4.125v-3.75m16.5 0c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125"/>`,
+  },
+  {
+    title: 'ctx_analyze',
+    subtitle: 'Entropy Analysis',
+    savings: 'Diagnostic',
+    description: 'Shannon entropy distribution + Jaccard pattern analysis. Shows which lines carry real information and recommends the optimal mode.',
+    gradient: 'from-accent/20 to-accent-2/10',
+    icon: `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0112 15a9.065 9.065 0 00-6.23.693L5 14.5m14.8.8l1.402 1.402c1.232 1.232.65 3.318-1.067 3.611A48.309 48.309 0 0112 21c-2.773 0-5.491-.235-8.135-.687-1.718-.293-2.3-2.379-1.067-3.61L5 14.5"/>`,
   },
   {
     title: 'ctx_benchmark',
     subtitle: 'Measure Savings',
     savings: 'Exact counts',
-    description: 'Run benchmarks on any file to see exact tiktoken counts for every compression strategy. Data-driven decisions.',
+    description: 'Benchmarks any file against every strategy with tiktoken. See exact token counts for data-driven mode selection.',
     gradient: 'from-accent-2/20 to-accent/10',
     icon: `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z"/>`,
   },
@@ -44,17 +52,17 @@ const features = [
     title: 'ctx_metrics',
     subtitle: 'Session Stats',
     savings: 'Real-time',
-    description: 'tiktoken-measured token savings per session. Track cache hit rates, compression ratios, and total savings across all tools.',
+    description: 'tiktoken-measured savings per session. Track cache hit rates, compression ratios, and cumulative totals across tools.',
     gradient: 'from-accent-3/20 to-accent-2/10',
     icon: `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7.5 14.25v2.25m3-4.5v4.5m3-6.75v6.75m3-9v9M6 20.25h12A2.25 2.25 0 0020.25 18V6A2.25 2.25 0 0018 3.75H6A2.25 2.25 0 003.75 6v12A2.25 2.25 0 006 20.25z"/>`,
   },
   {
-    title: 'ctx_analyze',
-    subtitle: 'Entropy Analysis',
-    savings: 'Diagnostic',
-    description: 'Information-theoretic analysis using Shannon entropy. Shows which parts of a file carry real information vs. boilerplate.',
-    gradient: 'from-accent/20 to-accent-2/10',
-    icon: `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0112 15a9.065 9.065 0 00-6.23.693L5 14.5m14.8.8l1.402 1.402c1.232 1.232.65 3.318-1.067 3.611A48.309 48.309 0 0112 21c-2.773 0-5.491-.235-8.135-.687-1.718-.293-2.3-2.379-1.067-3.61L5 14.5"/>`,
+    title: 'ctx_search',
+    subtitle: 'Code Search',
+    savings: '50-80%',
+    description: 'Search for patterns across files and return only matching lines with compact context. No need to read entire files.',
+    gradient: 'from-accent-2/20 to-accent-3/10',
+    icon: `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/>`,
   },
 ];
 ---
@@ -64,6 +72,7 @@ const features = [
 
   <div class="relative max-w-7xl mx-auto px-6">
     <div class="text-center mb-20">
+      <p class="text-xs font-semibold uppercase tracking-widest text-accent mb-3">The toolkit</p>
       <h2 class="text-3xl sm:text-4xl font-bold mb-5">8 MCP Tools. <span class="gradient-text">One Goal.</span></h2>
       <p class="text-muted text-lg max-w-2xl mx-auto leading-relaxed">
         Every tool minimizes tokens while maximizing context quality.
@@ -71,7 +80,7 @@ const features = [
       </p>
     </div>
 
-    <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
+    <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-5">
       {features.map(f => (
         <div class="card-premium rounded-2xl p-7 group">
           <div class={`absolute inset-0 rounded-2xl bg-gradient-to-br ${f.gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none`}></div>
@@ -94,6 +103,15 @@ const features = [
           </div>
         </div>
       ))}
+    </div>
+
+    <div class="text-center mt-12">
+      <a href="/features" class="btn-outline-glossy inline-flex items-center px-8 py-3.5 text-sm font-medium rounded-xl text-text">
+        Explore all tools
+        <svg class="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+        </svg>
+      </a>
     </div>
   </div>
 </section>

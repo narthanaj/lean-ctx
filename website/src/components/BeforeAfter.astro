@@ -84,6 +84,66 @@ to v9 are no longer supported` },
 [823 tok saved (97%)]` },
   },
   {
+    id: 'git',
+    label: 'git status',
+    before: { tokens: '612', code: `$ git status
+On branch feature/auth
+Your branch is ahead of 'origin/feature/auth' by 3 commits.
+  (use "git push" to publish your local commits)
+
+Changes to be committed:
+  (use "git restore --staged <file>..." to unstage)
+	new file:   src/auth/session.ts
+	modified:   src/auth/login.ts
+	modified:   src/routes/api.ts
+
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+	modified:   src/auth/session.ts
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	src/auth/session.test.ts` },
+    after: { tokens: '78', saving: '87%', code: `$ ctx_shell "git status"
+feature/auth ↑3
+staged: +src/auth/session.ts ~src/auth/login.ts ~src/routes/api.ts
+unstaged: ~src/auth/session.ts
+untracked: src/auth/session.test.ts
+[534 tok saved (87%)]` },
+  },
+  {
+    id: 'tsc',
+    label: 'TypeScript errors',
+    before: { tokens: '1,240', code: `$ tsc --noEmit
+src/auth/session.ts(12,5): error TS2322: Type 'string | undefined'
+is not assignable to type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+
+src/auth/session.ts(24,9): error TS2345: Argument of type 'number'
+is not assignable to parameter of type 'string'.
+
+src/routes/api.ts(8,3): error TS2739: Type '{ id: number; }'
+is missing the following properties from type 'User':
+name, email, createdAt
+
+src/routes/api.ts(45,28): error TS2551: Property 'stauts' does
+not exist on type 'Response'. Did you mean 'status'?
+
+Found 4 errors in 2 files.
+
+Errors  Files
+     2  src/auth/session.ts:12
+     2  src/routes/api.ts:8` },
+    after: { tokens: '142', saving: '89%', code: `$ ctx_shell "tsc --noEmit"
+4 errors in 2 files:
+session.ts:12 TS2322 string|undefined ≠ string
+session.ts:24 TS2345 number ≠ string
+api.ts:8 TS2739 {id} missing name,email,createdAt
+api.ts:45 TS2551 'stauts' → 'status'
+[1098 tok saved (89%)]` },
+  },
+  {
     id: 'tree',
     label: 'Project Map',
     before: { tokens: '980', code: `$ find src -type f | head -30
@@ -149,6 +209,43 @@ F3 routes.ts [234L]: fn setupRoutes,
 STATS: 34 reads, 22 hits (65%)
 COMPRESSION: 28450 → 890 tok (97%)` },
   },
+  {
+    id: 'entropy',
+    label: 'Entropy Filter',
+    before: { tokens: '1,856', code: `$ Read middleware.ts
+import express from 'express';
+import type { Request, Response, NextFunction } from 'express';
+
+/**
+ * @description Authentication middleware
+ * @param {Request} req - Express request
+ * @param {Response} res - Express response
+ * @param {NextFunction} next - Next function
+ * @returns {void}
+ */
+export function authMiddleware(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): void {
+  const token = req.headers.authorization;
+  if (!token) {
+    res.status(401).json({ error: 'Unauthorized' });
+    return;
+  }
+  // ... 78 lines, mostly JSDoc + boilerplate` },
+    after: { tokens: '312', saving: '83%', code: `$ ctx_read middleware.ts --mode entropy
+F8 [78L +] (H̄=3.2 bits/char)
+⊘ 14 low-entropy lines (H<2.0)
+⊘ 3 duplicate patterns (J≥0.7)
+fn authMiddleware(req,res,next)
+  token = req.headers.authorization
+  if !token → 401
+  verify(token) → req.user
+fn rateLimiter(max,window)
+  ...
+[1544 tok saved (83%)]` },
+  },
 ];
 ---
 
@@ -157,9 +254,10 @@ COMPRESSION: 28450 → 890 tok (97%)` },
 
   <div class="relative max-w-6xl mx-auto px-6">
     <div class="text-center mb-12">
+      <p class="text-xs font-semibold uppercase tracking-widest text-accent mb-3">Live comparison</p>
       <h2 class="text-3xl sm:text-4xl font-bold mb-5">See the <span class="gradient-text">difference</span></h2>
       <p class="text-muted text-lg max-w-2xl mx-auto leading-relaxed">
-        Real outputs, real savings. Side-by-side comparison on actual commands.
+        Real outputs from real projects. Side-by-side, token-counted.
       </p>
     </div>
 
@@ -169,7 +267,7 @@ COMPRESSION: 28450 → 890 tok (97%)` },
         <button
           data-tab={d.id}
           class:list={[
-            'px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 demo-tab',
+            'px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 demo-tab cursor-pointer',
             i === 0 ? 'bg-accent/10 text-accent border border-accent/20' : 'text-muted hover:text-text hover:bg-surface-2'
           ]}
         >
@@ -193,7 +291,7 @@ COMPRESSION: 28450 → 890 tok (97%)` },
             </div>
             <span class="text-xs font-mono text-danger/60">~{d.before.tokens} tokens</span>
           </div>
-          <pre class="p-5 text-xs font-mono text-muted/70 leading-relaxed overflow-x-auto max-h-[320px] overflow-y-auto"><code>{d.before.code}</code></pre>
+          <pre class="p-5 text-xs font-mono text-muted/70 leading-relaxed overflow-x-auto max-h-[340px] overflow-y-auto"><code>{d.before.code}</code></pre>
         </div>
 
         <!-- After -->
@@ -209,7 +307,7 @@ COMPRESSION: 28450 → 890 tok (97%)` },
               <span class="px-2 py-0.5 rounded-md bg-accent/10 text-xs font-bold text-accent">-{d.after.saving}</span>
             </div>
           </div>
-          <pre class="relative p-5 text-xs font-mono text-text leading-relaxed overflow-x-auto max-h-[320px] overflow-y-auto"><code>{d.after.code}</code></pre>
+          <pre class="relative p-5 text-xs font-mono text-text leading-relaxed overflow-x-auto max-h-[340px] overflow-y-auto"><code>{d.after.code}</code></pre>
         </div>
       </div>
     ))}

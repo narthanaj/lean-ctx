@@ -5,14 +5,15 @@ const tools = [
   {
     id: 'ctx_read',
     name: 'ctx_read',
-    tagline: 'Smart File Read with 4 Modes',
+    tagline: 'Smart File Read with 5 Modes',
     savings: '89-99%',
-    description: 'The most powerful tool in lean-ctx. Session-aware caching means files are only sent once. Subsequent reads return a 13-token cache hit instead of the full content.',
+    description: 'The core tool. Session-aware caching means files are only transmitted once. Re-reads return a 13-token cache hit. Five distinct modes let you choose exactly how much context the LLM receives.',
     modes: [
-      { name: 'full', desc: 'Default mode. Reads the file and caches it. Re-reads return a compact cache-hit message.', savings: '~99% on re-reads' },
-      { name: 'signatures', desc: 'Extracts only function signatures, interfaces, types, and exports. Perfect for dependency files.', savings: '83-96%' },
-      { name: 'diff', desc: 'Returns only the lines that changed since the last read. Ideal for monitoring file changes.', savings: '70-95%' },
-      { name: 'aggressive', desc: 'Full content with syntax stripping: reduced indentation, removed obvious type annotations.', savings: '20-40%' },
+      { name: 'full', desc: 'Default. Reads the file and caches it. Re-reads return a compact cache-hit message.', savings: '~99% on re-reads' },
+      { name: 'signatures', desc: 'Extracts function signatures, interfaces, types, and exports only. Ideal for dependency files.', savings: '83-96%' },
+      { name: 'diff', desc: 'Returns only lines that changed since the last read. Perfect for monitoring edits.', savings: '70-95%' },
+      { name: 'aggressive', desc: 'Full content with syntax stripping: reduced indentation, removed redundant type annotations.', savings: '20-40%' },
+      { name: 'entropy', desc: 'Shannon entropy filtering removes low-information lines. Jaccard deduplication collapses similar blocks.', savings: '60-85%' },
     ],
     example: {
       input: 'ctx_read auth.ts --mode signatures',
@@ -32,7 +33,7 @@ fn async destroySession(token:s)
     name: 'ctx_tree',
     tagline: 'Compact Project Structure',
     savings: '40%',
-    description: 'Generates token-efficient directory listings using simple indentation instead of Unicode box-drawing characters. Includes file counts per directory.',
+    description: 'Token-efficient directory listings using indentation instead of Unicode box-drawing. Shows file counts per directory so the LLM understands project scale without reading every path.',
     modes: [],
     example: {
       input: 'ctx_tree --depth 2',
@@ -51,12 +52,15 @@ README.md
     name: 'ctx_shell',
     tagline: 'CLI Output Compression',
     savings: '60-90%',
-    description: 'Pattern-based compression for common developer tools. Recognizes npm, git, docker, and TypeScript compiler output.',
+    description: 'Pattern-based compression for common developer tools. Recognizes npm, git, docker, and TypeScript compiler output. Strips noise like funding messages, deprecation warnings, and verbose formatting.',
     modes: [],
     example: {
-      input: 'ctx_shell "npm install express"',
-      output: `+express@4.18.2 (3 deps, 847ms)
-[82 tok saved (71%)]`,
+      input: 'ctx_shell "git status"',
+      output: `feature/auth ↑3
+staged: +session.ts ~login.ts ~api.ts
+unstaged: ~session.ts
+untracked: session.test.ts
+[534 tok saved (87%)]`,
     },
   },
   {
@@ -64,7 +68,7 @@ README.md
     name: 'ctx_compress',
     tagline: 'Context Checkpoint',
     savings: '90-95%',
-    description: 'Compresses all cached files into an ultra-compact signature map. Use as a memory checkpoint for long conversations to prevent context bloat.',
+    description: 'Compresses all cached files into an ultra-compact signature map. Use as a memory checkpoint when conversations get long — paste the output into a fresh chat to carry over full project understanding at minimal token cost.',
     modes: [],
     example: {
       input: 'ctx_compress',
@@ -83,7 +87,7 @@ COMPRESSION: 28450 -> 890 tok (97% saved)`,
     name: 'ctx_benchmark',
     tagline: 'Exact Token Measurements',
     savings: 'Data-driven',
-    description: 'Run benchmarks on any file to see exact tiktoken counts for every compression strategy. Compare all modes side by side.',
+    description: 'Benchmarks any file against all compression strategies using tiktoken. Shows exact token counts side-by-side so you can make data-driven decisions about which mode to use.',
     modes: [],
     example: {
       input: 'ctx_benchmark auth.ts',
@@ -94,6 +98,7 @@ Strategy             Tokens  Savings
 raw                     915  —
 aggressive              946  —
 signatures (compact)    121  -794 (87%)
+entropy                 198  -717 (78%)
 cache hit                13  -902 (99%)
 ──────────────────────────────────────
 Best: "cache hit" saves 902 tokens (99%)`,
@@ -104,7 +109,7 @@ Best: "cache hit" saves 902 tokens (99%)`,
     name: 'ctx_metrics',
     tagline: 'Real-time Session Statistics',
     savings: 'Monitoring',
-    description: 'View session statistics with tiktoken-measured token counts. Tracks cache hit rates, per-tool savings, and file references.',
+    description: 'Session-wide statistics with tiktoken-measured token counts. Tracks cache hit rates, per-tool savings, and cumulative totals across all tool invocations.',
     modes: [],
     example: {
       input: 'ctx_metrics',
@@ -114,19 +119,64 @@ tokens: 28,450 original -> 4,120 sent (-24,330 saved, 85%)
 refs: F1=auth.ts F2=db.ts F3=routes.ts ...`,
     },
   },
+  {
+    id: 'ctx_analyze',
+    name: 'ctx_analyze',
+    tagline: 'Information-Theoretic Analysis',
+    savings: 'Diagnostic',
+    description: 'Deep analysis of a file using Shannon entropy and Jaccard similarity. Shows exactly which lines carry real information vs. boilerplate, and recommends the optimal compression mode.',
+    modes: [],
+    example: {
+      input: 'ctx_analyze middleware.ts',
+      output: `ANALYSIS: middleware.ts (78L, 1856 tok)
+
+Entropy Distribution:
+  H̄ = 3.2 bits/char (σ = 1.1)
+  Low-entropy (H<2.0): 14 lines (18%)
+  High-entropy (H>4.0): 22 lines (28%)
+
+Pattern Analysis:
+  3 similar blocks (Jaccard ≥ 0.7)
+  Dedup potential: ~240 tokens
+
+Strategy Comparison:
+  raw           1,856 tok  —
+  signatures      312 tok  -83%
+  entropy         298 tok  -84%  ← recommended
+  cache hit        13 tok  -99%
+
+Recommendation: entropy (best first-read savings)`,
+    },
+  },
+  {
+    id: 'ctx_search',
+    name: 'ctx_search',
+    tagline: 'Token-efficient Code Search',
+    savings: '50-80%',
+    description: 'Searches files for patterns and returns only matching lines with compact context. Avoids the need to read entire files when looking for specific code.',
+    modes: [],
+    example: {
+      input: 'ctx_search "createUser" --ext ts',
+      output: `3 matches in 2 files:
+auth.ts:18 fn createUser(email:s, password:s, ...)
+routes.ts:45 await createUser(body.email, body.pwd, ...)
+routes.ts:89 // createUser validation
+[~1200 tok saved vs full reads]`,
+    },
+  },
 ];
 ---
 
-<BaseLayout title="Features — lean-ctx" description="6 MCP tools that reduce LLM token consumption by 89-99%. Smart caching, signature extraction, context compression, and more.">
+<BaseLayout title="Features — lean-ctx" description="8 MCP tools that reduce LLM token consumption by 89-99%. Smart caching, signature extraction, entropy filtering, context compression, and more.">
   <div class="relative max-w-7xl mx-auto px-6 py-24">
-    <!-- Background orbs -->
     <div class="orb w-[300px] h-[300px] bg-accent/10 top-[100px] right-[10%]" style="animation-delay: -3s;"></div>
     <div class="orb w-[250px] h-[250px] bg-accent-2/10 bottom-[20%] left-[5%]" style="animation-delay: -10s;"></div>
 
     <div class="relative text-center mb-24">
+      <p class="text-xs font-semibold uppercase tracking-widest text-accent mb-3">Tool reference</p>
       <h1 class="text-4xl sm:text-5xl font-extrabold tracking-tight mb-5">Every Tool, <span class="gradient-text">Explained</span></h1>
       <p class="text-lg text-muted max-w-2xl mx-auto leading-relaxed">
-        6 MCP tools working together to minimize tokens while preserving the context your AI coding tool needs.
+        8 MCP tools working together to minimize tokens while preserving the context your AI needs for high-quality reasoning.
       </p>
     </div>
 

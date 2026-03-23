@@ -4,76 +4,93 @@
   <div class="orb w-[350px] h-[350px] bg-accent-3/10 bottom-[5%] left-[40%]" style="animation-delay: -13s;"></div>
   <div class="absolute inset-0 bg-gradient-to-b from-bg via-transparent to-bg pointer-events-none"></div>
 
-  <div class="relative max-w-7xl mx-auto px-6 pt-28 pb-24 text-center">
-    <div class="inline-flex items-center gap-2.5 px-5 py-2 mb-8 rounded-full glass text-xs text-muted">
-      <span class="relative flex h-2 w-2">
-        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-75"></span>
-        <span class="relative inline-flex rounded-full h-2 w-2 bg-accent"></span>
-      </span>
-      Open Source · MIT · TypeScript
-    </div>
+  <div class="relative max-w-7xl mx-auto px-6 pt-28 pb-24">
+    <div class="grid lg:grid-cols-2 gap-16 items-center">
 
-    <h1 class="text-5xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight leading-[1.05] mb-6 max-w-4xl mx-auto">
-      Your AI agent reads<br />
-      <span class="gradient-text">too many tokens.</span><br />
-      Fix it.
-    </h1>
-
-    <p class="text-lg sm:text-xl text-muted max-w-2xl mx-auto mb-10 leading-relaxed">
-      lean-ctx compresses file reads, CLI outputs, and project context before they reach the LLM.
-      <strong class="text-text">Better reasoning. Longer sessions. Lower costs.</strong>
-    </p>
-
-    <!-- Stats Badges -->
-    <div class="flex flex-wrap items-center justify-center gap-6 mb-14">
-      <div class="flex items-center gap-2.5 px-5 py-3 rounded-xl glass">
-        <span class="text-2xl font-extrabold gradient-text-accent">89-99%</span>
-        <span class="text-xs text-muted leading-tight">avg. tokens<br />removed</span>
-      </div>
-      <div class="flex items-center gap-2.5 px-5 py-3 rounded-xl glass">
-        <span class="text-2xl font-extrabold gradient-text">8</span>
-        <span class="text-xs text-muted leading-tight">MCP tools<br />included</span>
-      </div>
-      <div class="flex items-center gap-2.5 px-5 py-3 rounded-xl glass">
-        <span class="text-2xl font-extrabold gradient-text-accent">4</span>
-        <span class="text-xs text-muted leading-tight">editors<br />supported</span>
-      </div>
-    </div>
-
-    <!-- CTA -->
-    <div class="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16">
-      <a href="/docs/getting-started" class="btn-glossy inline-flex items-center px-8 py-3.5 text-sm font-bold rounded-xl text-bg">
-        Install lean-ctx
-        <svg class="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
-        </svg>
-      </a>
-      <a href="https://gitlab.pounce.ch/root/lean-ctx" target="_blank" rel="noopener" class="btn-outline-glossy inline-flex items-center px-8 py-3.5 text-sm font-medium rounded-xl text-text">
-        Star on GitLab
-        <svg class="ml-2 w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-          <path d="m23.6004 9.5927-.0337-.0862L20.3.9814a.851.851 0 0 0-.3362-.4058.8748.8748 0 0 0-.9997.0539.8748.8748 0 0 0-.29.4702l-2.2055 6.748H7.5375l-2.2057-6.748a.8573.8573 0 0 0-.29-.4702.8748.8748 0 0 0-.9997-.0539.8604.8604 0 0 0-.3362.4058L.4332 9.5015l-.0337.0862a6.0657 6.0657 0 0 0 2.0119 7.0105l.0113.008.0287.0216 4.9587 3.7116 2.4559 1.86 1.4947 1.1312a1.0085 1.0085 0 0 0 1.2187 0l1.4947-1.1312 2.4559-1.86 4.9874-3.7332.0126-.0102a6.0682 6.0682 0 0 0 2.0094-7.003z"/>
-        </svg>
-      </a>
-    </div>
-
-    <!-- Terminal Demo -->
-    <div class="max-w-2xl mx-auto">
-      <div class="rounded-2xl glass-strong terminal-glow overflow-hidden">
-        <div class="flex items-center gap-2 px-5 py-3.5 border-b border-border/50">
-          <span class="w-3 h-3 rounded-full bg-danger/60"></span>
-          <span class="w-3 h-3 rounded-full bg-[#fbbf24]/60"></span>
-          <span class="w-3 h-3 rounded-full bg-accent/60"></span>
-          <span class="ml-3 text-xs text-muted/60 font-mono">lean-ctx metrics</span>
+      <!-- Left: Copy -->
+      <div>
+        <div class="inline-flex items-center gap-2.5 px-5 py-2 mb-8 rounded-full glass text-xs text-muted">
+          <span class="relative flex h-2 w-2">
+            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-75"></span>
+            <span class="relative inline-flex rounded-full h-2 w-2 bg-accent"></span>
+          </span>
+          Open Source · MIT · TypeScript
         </div>
-        <div class="p-6 text-left font-mono text-sm leading-relaxed">
-          <p class="text-muted/70">$ ctx_metrics</p>
-          <p class="mt-3 text-text-bright">lean-ctx session</p>
-          <p class="mt-2 text-muted/60">═══════════════════════════════════════</p>
-          <p class="mt-1"><span class="text-muted/60">files:</span> <span class="text-text">12 tracked, 34 reads, 22 hits (65%)</span></p>
-          <p><span class="text-muted/60">tokens:</span> <span class="text-text">28,450 original</span> <span class="text-muted/40">→</span> <span class="gradient-text-accent font-bold">4,120 sent</span></p>
-          <p><span class="text-muted/60">saved:</span> <span class="gradient-text-accent font-bold">-24,330 tokens (85%)</span></p>
-          <p class="mt-2 text-muted/60">═══════════════════════════════════════</p>
-          <p class="mt-1 text-muted/50">refs: F1=auth.ts F2=db.ts F3=routes.ts ...</p>
+
+        <h1 class="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.08] mb-6">
+          Your AI agent wastes tokens on context it already has.
+          <span class="gradient-text">Stop it.</span>
+        </h1>
+
+        <p class="text-lg text-muted leading-relaxed mb-4">
+          <strong class="text-text-bright">lean-ctx</strong> (<em>lean context</em>) is an MCP server that
+          caches, compresses, and deduplicates every file read and CLI output
+          before it reaches the LLM.
+        </p>
+        <p class="text-lg text-muted leading-relaxed mb-10">
+          <strong class="text-text">Better reasoning. Longer sessions. Lower costs.</strong>
+        </p>
+
+        <!-- Stats -->
+        <div class="flex flex-wrap gap-5 mb-10">
+          <div class="flex items-center gap-2.5 px-5 py-3 rounded-xl glass">
+            <span class="text-2xl font-extrabold gradient-text-accent">89–99%</span>
+            <span class="text-xs text-muted leading-tight">tokens<br/>removed</span>
+          </div>
+          <div class="flex items-center gap-2.5 px-5 py-3 rounded-xl glass">
+            <span class="text-2xl font-extrabold gradient-text">8</span>
+            <span class="text-xs text-muted leading-tight">MCP<br/>tools</span>
+          </div>
+          <div class="flex items-center gap-2.5 px-5 py-3 rounded-xl glass">
+            <span class="text-2xl font-extrabold gradient-text-accent">4+</span>
+            <span class="text-xs text-muted leading-tight">editors<br/>supported</span>
+          </div>
+        </div>
+
+        <!-- CTAs -->
+        <div class="flex flex-wrap gap-4">
+          <a href="/docs/getting-started" class="btn-glossy inline-flex items-center px-8 py-3.5 text-sm font-bold rounded-xl text-bg">
+            Install lean-ctx
+            <svg class="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+            </svg>
+          </a>
+          <a href="https://gitlab.pounce.ch/root/lean-ctx" target="_blank" rel="noopener" class="btn-outline-glossy inline-flex items-center px-8 py-3.5 text-sm font-medium rounded-xl text-text">
+            Star on GitLab
+            <svg class="ml-2 w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+              <path d="m23.6004 9.5927-.0337-.0862L20.3.9814a.851.851 0 0 0-.3362-.4058.8748.8748 0 0 0-.9997.0539.8748.8748 0 0 0-.29.4702l-2.2055 6.748H7.5375l-2.2057-6.748a.8573.8573 0 0 0-.29-.4702.8748.8748 0 0 0-.9997-.0539.8604.8604 0 0 0-.3362.4058L.4332 9.5015l-.0337.0862a6.0657 6.0657 0 0 0 2.0119 7.0105l.0113.008.0287.0216 4.9587 3.7116 2.4559 1.86 1.4947 1.1312a1.0085 1.0085 0 0 0 1.2187 0l1.4947-1.1312 2.4559-1.86 4.9874-3.7332.0126-.0102a6.0682 6.0682 0 0 0 2.0094-7.003z"/>
+            </svg>
+          </a>
+        </div>
+      </div>
+
+      <!-- Right: Terminal -->
+      <div class="hidden lg:block">
+        <div class="rounded-2xl glass-strong terminal-glow overflow-hidden">
+          <div class="flex items-center gap-2 px-5 py-3.5 border-b border-border/50">
+            <span class="w-3 h-3 rounded-full bg-danger/60"></span>
+            <span class="w-3 h-3 rounded-full bg-[#fbbf24]/60"></span>
+            <span class="w-3 h-3 rounded-full bg-accent/60"></span>
+            <span class="ml-3 text-xs text-muted/60 font-mono">lean-ctx metrics</span>
+          </div>
+          <div class="p-6 font-mono text-sm leading-relaxed">
+            <p class="text-muted/60">$ ctx_metrics</p>
+            <p class="mt-3 text-text-bright font-semibold">lean-ctx session</p>
+            <p class="mt-1 text-muted/40">════════════════════════════════════════</p>
+            <p class="mt-2"><span class="text-muted/50">Total reads:</span> <span class="text-text">34</span></p>
+            <p><span class="text-muted/50">Cache hits:</span> <span class="text-text">22 (65%)</span></p>
+            <p><span class="text-muted/50">Input tokens:</span> <span class="text-text">28,450</span></p>
+            <p><span class="text-muted/50">Output tokens:</span> <span class="gradient-text-accent font-bold">4,120</span></p>
+            <p><span class="text-muted/50">Tokens saved:</span> <span class="gradient-text-accent font-bold">24,330 (85.5%)</span></p>
+            <p class="mt-2 text-muted/40">════════════════════════════════════════</p>
+            <p class="mt-2 text-muted/50">By Tool:</p>
+            <p class="text-muted/40">────────────────────────────────────────</p>
+            <p><span class="text-muted/50">Tool          </span><span class="text-muted/40">Count  Saved   Avg%</span></p>
+            <p><span class="text-text">ctx_read      </span><span class="text-muted">  18   19.2K   91%</span></p>
+            <p><span class="text-text">ctx_shell     </span><span class="text-muted">   8    3.1K   74%</span></p>
+            <p><span class="text-text">ctx_tree      </span><span class="text-muted">   4    1.2K   40%</span></p>
+            <p><span class="text-text">ctx_compress  </span><span class="text-muted">   2     820   95%</span></p>
+          </div>
         </div>
       </div>
     </div>

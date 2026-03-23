@@ -3,7 +3,7 @@ const editors = [
   {
     name: 'Cursor',
     price: '$20 — $200/mo',
-    limits: '500 included, then on-demand',
+    limits: '500 fast, then on-demand',
     context: 'Up to 200K tokens',
     benefit: 'Credits stretch ~3x further',
     gradient: 'from-accent/10 to-accent-2/5',
@@ -32,6 +32,38 @@ const editors = [
     benefit: 'Credits last ~2x longer',
     gradient: 'from-accent/10 to-accent-3/5',
   },
+  {
+    name: 'Zed AI',
+    price: '$10 — $50/mo',
+    limits: 'Credit-based',
+    context: 'Up to 128K tokens',
+    benefit: 'More completions per credit',
+    gradient: 'from-accent-2/10 to-accent/5',
+  },
+  {
+    name: 'Cline',
+    price: 'Bring your API key',
+    limits: 'Pay per token (API)',
+    context: '200K tokens',
+    benefit: 'Direct API cost reduction',
+    gradient: 'from-accent-3/10 to-accent-2/5',
+  },
+  {
+    name: 'Continue',
+    price: 'Free + API costs',
+    limits: 'Pay per token (API)',
+    context: '200K tokens',
+    benefit: 'Fewer tokens per autocomplete',
+    gradient: 'from-accent/10 to-accent-2/5',
+  },
+  {
+    name: 'Aider',
+    price: 'Free + API costs',
+    limits: 'Pay per token (API)',
+    context: '128K tokens',
+    benefit: 'Lower per-session API bills',
+    gradient: 'from-accent-2/10 to-accent-3/5',
+  },
 ];
 ---
 
@@ -40,9 +72,10 @@ const editors = [
 
   <div class="relative max-w-7xl mx-auto px-6">
     <div class="text-center mb-16">
+      <p class="text-xs font-semibold uppercase tracking-widest text-accent mb-3">Universal compatibility</p>
       <h2 class="text-3xl sm:text-4xl font-bold mb-5">No AI tool offers unlimited usage.<br /><span class="gradient-text">Every token counts.</span></h2>
       <p class="text-muted text-lg max-w-3xl mx-auto leading-relaxed">
-        Even at $200/mo, every tool has caps. lean-ctx compresses context so your limits stretch further.
+        Whether you pay per request, per credit, or per token — lean-ctx compresses context so your limits stretch further.
       </p>
     </div>
 
