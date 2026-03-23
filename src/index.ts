@@ -10,13 +10,14 @@ import { registerCtxShell } from './tools/ctx-shell.js';
 import { registerCtxMetrics } from './tools/ctx-metrics.js';
 import { registerCtxBenchmark } from './tools/ctx-benchmark.js';
 import { registerCtxCompress } from './tools/ctx-compress.js';
+import { registerCtxAnalyze } from './tools/ctx-analyze.js';
 
 const projectRoot = process.env.LEAN_CTX_ROOT || process.cwd();
 const projectName = projectRoot.split('/').pop() || 'unknown';
 
 const server = new McpServer({
   name: 'lean-ctx',
-  version: '0.4.0',
+  version: '0.5.0',
 });
 
 const cache = new SessionCache();
@@ -28,6 +29,7 @@ registerCtxShell(server, cache);
 registerCtxMetrics(server, cache);
 registerCtxBenchmark(server, cache);
 registerCtxCompress(server, cache);
+registerCtxAnalyze(server);
 
 process.on('SIGINT', () => { flushSession(); process.exit(0); });
 process.on('SIGTERM', () => { flushSession(); process.exit(0); });

@@ -8,6 +8,7 @@ import { computeDiff, formatDiff } from '../core/differ.js';
 import { extractSignatures } from '../core/signature-extractor.js';
 import { trackSavings } from '../core/token-counter.js';
 import { formatCacheHit, formatFileHeader, formatCompactSignature, shortenPath } from '../core/protocol.js';
+import { entropyCompress } from '../core/entropy-compressor.js';
 
 const compressor = new Compressor();
 
@@ -19,13 +20,14 @@ Modes:
 - "full" (default): Returns file content, cached on re-read if unchanged.
 - "signatures": Returns only function signatures, interfaces, types, and exports. Ideal for dependency files where only the API surface is needed. Saves 60-80% tokens.
 - "diff": If the file was previously read and has changed, returns only the diff. Saves 70-95% tokens on changed files.
-- "aggressive": Full content but with aggressive syntax stripping (reduced indentation, stripped obvious types). Saves 20-40% extra.`,
+- "aggressive": Full content but with aggressive syntax stripping (reduced indentation, stripped obvious types). Saves 20-40% extra.
+- "entropy": Shannon entropy filtering + Jaccard pattern deduplication. Strips low-information lines and collapses similar functions. Best for large files. Saves 30-60% extra.`,
     {
       path: z.string().describe('Absolute or relative file path to read'),
       mode: z
-        .enum(['full', 'signatures', 'diff', 'aggressive'])
+        .enum(['full', 'signatures', 'diff', 'aggressive', 'entropy'])
         .optional()
-        .describe('Read mode: full (default), signatures (API only), diff (changes only), aggressive (stripped syntax)'),
+        .describe('Read mode: full (default), signatures (API only), diff (changes only), aggressive (stripped syntax), entropy (math-based compression)'),
       query: z
         .string()
         .optional()
@@ -63,6 +65,10 @@ Modes:
         return handleSignaturesMode(content, absPath);
       }
 
+      if (mode === 'entropy') {
+        return handleEntropyMode(content, absPath);
+      }
+
       if (mode === 'diff') {
         const lineCount = content.split('\n').length;
         return textResult(`First read of file (${lineCount} lines) — no previous version to diff against.\n\n${compressor.compressCode(content).output}`);
@@ -98,6 +104,10 @@ function handleCacheHit(
 
   if (mode === 'signatures') {
     return handleSignaturesMode(entry.content, absPath);
+  }
+
+  if (mode === 'entropy') {
+    return handleEntropyMode(entry.content, absPath);
   }
 
   const summary = formatCacheHit(absPath, turnsAgo, lines);
@@ -157,6 +167,18 @@ function handleSignaturesMode(
   const tokSavings = trackSavings(content, compactOutput, 'ctx_read', absPath, 'signatures');
 
   return textResult(`${compactOutput}\n${tokSavings}`);
+}
+
+function handleEntropyMode(
+  content: string,
+  absPath: string
+): { content: { type: 'text'; text: string }[] } {
+  const result = entropyCompress(content);
+  const techniques = result.techniques.length > 0
+    ? `\n[${result.techniques.join('; ')}]`
+    : '';
+  const savings = trackSavings(content, result.output, 'ctx_read', absPath, 'entropy');
+  return textResult(`${result.output}${techniques}\n${savings}`);
 }
 
 function buildMeta(reductionPercent: number, lineCount: number, _mode: string): string {

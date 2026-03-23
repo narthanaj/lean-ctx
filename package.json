@@ -1,6 +1,6 @@
 {
   "name": "lean-ctx",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Smart Context MCP Server — reduces LLM token consumption by 89-99% through caching, compression, and compact protocols. Works with Cursor, GitHub Copilot, Claude Code, and any MCP client.",
   "type": "module",
   "bin": {
