@@ -17,9 +17,9 @@ impl ServerHandler for LeanCtxServer {
         InitializeResult::new(capabilities)
             .with_server_info(Implementation::new("lean-ctx", "1.0.0"))
             .with_instructions(
-                "lean-ctx: Smart Context MCP Server. Reduces LLM token consumption by 89-99% \
-                through session caching, signature extraction, entropy filtering, and compact protocols. \
-                Use ctx_read instead of reading files directly. Use ctx_shell instead of running commands directly."
+                "lean-ctx MCP. Use ctx_read(path,mode) instead of Read. Use ctx_shell(cmd) instead of Shell. \
+                ctx_read modes: full(cached), map(deps+API), signatures, diff, aggressive, entropy. \
+                Re-reads=~13tok. File refs: F1,F2.. persist in session."
             )
     }
 
@@ -33,19 +33,19 @@ impl ServerHandler for LeanCtxServer {
                 tools: vec![
                     tool_def(
                         "ctx_read",
-                        "Smart file read with session-aware caching and 5 compression modes. \
-                        Re-reads cost 13 tokens instead of thousands. \
-                        Modes: full (default, cached), signatures (API surface only), \
+                        "Smart file read with session-aware caching and 6 compression modes. \
+                        Re-reads cost ~13 tokens. Modes: full (cached read), signatures (API surface), \
+                        map (dependency graph + exports + key signatures — use for context files you won't edit), \
                         diff (changed lines only), aggressive (syntax stripped), \
-                        entropy (Shannon filtering + Jaccard dedup).",
+                        entropy (Shannon + Jaccard).",
                         json!({
                             "type": "object",
                             "properties": {
                                 "path": { "type": "string", "description": "Absolute file path to read" },
                                 "mode": {
                                     "type": "string",
-                                    "enum": ["full", "signatures", "diff", "aggressive", "entropy"],
-                                    "description": "Compression mode (default: full)"
+                                    "enum": ["full", "signatures", "map", "diff", "aggressive", "entropy"],
+                                    "description": "Compression mode (default: full). Use 'map' for context-only files."
                                 }
                             },
                             "required": ["path"]

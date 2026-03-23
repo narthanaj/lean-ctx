@@ -1,7 +1,8 @@
 pub mod cache;
-pub mod tokens;
+pub mod compressor;
+pub mod deps;
+pub mod entropy;
+pub mod patterns;
 pub mod protocol;
 pub mod signatures;
-pub mod entropy;
-pub mod compressor;
-pub mod patterns;
+pub mod tokens;

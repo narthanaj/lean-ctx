@@ -3,72 +3,157 @@ use std::collections::HashMap;
 use crate::core::cache::SessionCache;
 use crate::tools::ToolCallRecord;
 
+const COST_PER_1M_INPUT: f64 = 15.0;
+const COST_PER_1M_OUTPUT: f64 = 75.0;
+
 pub fn handle(cache: &SessionCache, tool_calls: &[ToolCallRecord]) -> String {
     let stats = cache.get_stats();
     let refs = cache.file_ref_map();
 
-    let mut sections = Vec::new();
-    sections.push("lean-ctx session".to_string());
-    sections.push("═".repeat(42));
+    let mut out = Vec::new();
+    out.push("lean-ctx session metrics".to_string());
+    out.push("═".repeat(50));
 
-    sections.push(format!("Total reads: {}", stats.total_reads));
-    sections.push(format!(
-        "Cache hits: {} ({:.0}%)",
+    out.push(format!(
+        "Files tracked: {} | Reads: {} | Cache hits: {} ({:.0}%)",
+        stats.files_tracked,
+        stats.total_reads,
         stats.cache_hits,
         stats.hit_rate()
     ));
-    sections.push(format!("Input tokens: {}", stats.total_original_tokens));
-    sections.push(format!("Output tokens: {}", stats.total_sent_tokens));
-    sections.push(format!(
-        "Tokens saved: {} ({:.1}%)",
-        stats.tokens_saved(),
-        stats.savings_percent()
+
+    let saved = stats.tokens_saved();
+    let pct = stats.savings_percent();
+    out.push(format!(
+        "Input tokens:  {} original → {} sent | {} saved ({:.1}%)",
+        format_tokens(stats.total_original_tokens),
+        format_tokens(stats.total_sent_tokens),
+        format_tokens(saved),
+        pct
     ));
 
-    sections.push("═".repeat(42));
-    sections.push("By Tool:".to_string());
-    sections.push("─".repeat(42));
+    let cost_saved = saved as f64 / 1_000_000.0 * COST_PER_1M_INPUT;
+    let cost_without = stats.total_original_tokens as f64 / 1_000_000.0 * COST_PER_1M_INPUT;
+    let cost_with = stats.total_sent_tokens as f64 / 1_000_000.0 * COST_PER_1M_INPUT;
+    out.push(format!(
+        "Cost estimate: ${:.4} without → ${:.4} with lean-ctx | ${:.4} saved",
+        cost_without, cost_with, cost_saved
+    ));
 
-    let mut by_tool: HashMap<String, (u32, usize, Vec<f64>)> = HashMap::new();
-    for call in tool_calls {
-        let entry = by_tool.entry(call.tool.clone()).or_insert((0, 0, Vec::new()));
-        entry.0 += 1;
-        entry.1 += call.saved_tokens;
-        if call.original_tokens > 0 {
-            entry.2.push(call.saved_tokens as f64 / call.original_tokens as f64 * 100.0);
+    if !tool_calls.is_empty() {
+        out.push(String::new());
+        out.push("By Tool:".to_string());
+        out.push(format!(
+            "{:<14} {:>5}  {:>8}  {:>8}  {:>5}",
+            "Tool", "Calls", "Original", "Saved", "Avg%"
+        ));
+        out.push("─".repeat(50));
+
+        let mut by_tool: HashMap<&str, ToolStats> = HashMap::new();
+        for call in tool_calls {
+            let entry = by_tool.entry(&call.tool).or_default();
+            entry.calls += 1;
+            entry.original += call.original_tokens;
+            entry.saved += call.saved_tokens;
+        }
+
+        let mut sorted: Vec<_> = by_tool.iter().collect();
+        sorted.sort_by(|a, b| b.1.saved.cmp(&a.1.saved));
+
+        for (tool, ts) in &sorted {
+            let avg = if ts.original > 0 {
+                ts.saved as f64 / ts.original as f64 * 100.0
+            } else {
+                0.0
+            };
+            out.push(format!(
+                "{:<14} {:>5}  {:>8}  {:>8}  {:>4.0}%",
+                tool,
+                ts.calls,
+                format_tokens(ts.original as u64),
+                format_tokens(ts.saved as u64),
+                avg
+            ));
+        }
+
+        let mut by_mode: HashMap<&str, ModeStats> = HashMap::new();
+        for call in tool_calls {
+            if let Some(ref mode) = call.mode {
+                let entry = by_mode.entry(mode).or_default();
+                entry.calls += 1;
+                entry.saved += call.saved_tokens;
+            }
+        }
+
+        if !by_mode.is_empty() {
+            out.push(String::new());
+            out.push("By Mode:".to_string());
+            out.push(format!("{:<14} {:>5}  {:>8}", "Mode", "Calls", "Saved"));
+            out.push("─".repeat(30));
+
+            let mut sorted_modes: Vec<_> = by_mode.iter().collect();
+            sorted_modes.sort_by(|a, b| b.1.saved.cmp(&a.1.saved));
+
+            for (mode, ms) in &sorted_modes {
+                out.push(format!(
+                    "{:<14} {:>5}  {:>8}",
+                    mode,
+                    ms.calls,
+                    format_tokens(ms.saved as u64)
+                ));
+            }
         }
     }
 
-    sections.push(format!("{:<14} {:>5}  {:>6}  {:>4}", "Tool", "Count", "Saved", "Avg%"));
-    let mut sorted: Vec<_> = by_tool.iter().collect();
-    sorted.sort_by(|a, b| b.1 .1.cmp(&a.1 .1));
-
-    for (tool, (count, saved, pcts)) in &sorted {
-        let avg_pct = if pcts.is_empty() {
-            0.0
-        } else {
-            pcts.iter().sum::<f64>() / pcts.len() as f64
-        };
-        let saved_str = if *saved >= 1000 {
-            format!("{:.1}K", *saved as f64 / 1000.0)
-        } else {
-            format!("{saved}")
-        };
-        sections.push(format!(
-            "{tool:<14} {count:>5}  {saved_str:>6}  {avg_pct:>3.0}%"
-        ));
-    }
-
     if !refs.is_empty() {
-        sections.push(String::new());
-        sections.push("File Refs:".to_string());
+        out.push(String::new());
+        out.push("File Refs:".to_string());
         let mut ref_list: Vec<_> = refs.iter().collect();
         ref_list.sort_by_key(|(_, r)| (*r).clone());
         for (path, r) in &ref_list {
             let short = crate::core::protocol::shorten_path(path);
-            sections.push(format!("  {r}={short}"));
+            if let Some(entry) = cache.get(path) {
+                out.push(format!(
+                    "  {r}={short} [{}L {}t reads:{}]",
+                    entry.line_count, entry.original_tokens, entry.read_count
+                ));
+            } else {
+                out.push(format!("  {r}={short}"));
+            }
         }
     }
 
-    sections.join("\n")
+    let projected_session = saved as f64 / 1_000_000.0 * (COST_PER_1M_INPUT + COST_PER_1M_OUTPUT * 0.3);
+    if projected_session > 0.001 {
+        out.push(String::new());
+        out.push(format!(
+            "Projected session savings (incl. thinking): ${:.3}",
+            projected_session
+        ));
+    }
+
+    out.join("\n")
+}
+
+fn format_tokens(n: u64) -> String {
+    if n >= 1_000_000 {
+        format!("{:.1}M", n as f64 / 1_000_000.0)
+    } else if n >= 1_000 {
+        format!("{:.1}K", n as f64 / 1_000.0)
+    } else {
+        format!("{n}")
+    }
+}
+
+#[derive(Default)]
+struct ToolStats {
+    calls: u32,
+    original: usize,
+    saved: usize,
+}
+
+#[derive(Default)]
+struct ModeStats {
+    calls: u32,
+    saved: usize,
 }
