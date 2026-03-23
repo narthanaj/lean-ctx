@@ -17,9 +17,13 @@ impl ServerHandler for LeanCtxServer {
         InitializeResult::new(capabilities)
             .with_server_info(Implementation::new("lean-ctx", "1.1.1"))
             .with_instructions(
-                "lean-ctx MCP. Use ctx_read(path,mode) instead of Read. Use ctx_shell(cmd) instead of Shell. \
-                ctx_read modes: full(cached), map(deps+API), signatures, diff, aggressive, entropy. \
-                Re-reads=~13tok. File refs: F1,F2.. persist in session."
+                "lean-ctx MCP. ALWAYS replace built-in tools:\
+                Read→ctx_read | Shell→ctx_shell | Grep→ctx_search | ls/find→ctx_tree\n\
+                NEVER use Read, Shell, or Grep directly.\n\
+                ctx_read modes: full(cached,for edits), map(deps+API,context-only), signatures, diff, aggressive, entropy.\
+                Re-reads=~13tok. File refs F1,F2.. persist.\n\
+                Proactive: ctx_compress when context grows large. ctx_metrics periodically to verify savings.\
+                On demand: ctx_analyze(path) for optimal mode recommendation, ctx_benchmark(path) for exact token counts per mode."
             )
     }
 
