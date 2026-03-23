@@ -4,6 +4,7 @@ use tracing_subscriber::EnvFilter;
 
 mod cli;
 mod core;
+mod dashboard;
 mod server;
 mod shell;
 mod tools;
@@ -32,6 +33,13 @@ async fn main() -> Result<()> {
             }
             "gain" => {
                 println!("{}", core::stats::format_gain());
+                return Ok(());
+            }
+            "dashboard" => {
+                let port = rest.first()
+                    .and_then(|p| p.strip_prefix("--port=").or_else(|| p.strip_prefix("-p=")))
+                    .and_then(|p| p.parse().ok());
+                dashboard::start(port).await;
                 return Ok(());
             }
             "init" => {
@@ -119,6 +127,7 @@ USAGE:
 
 COMMANDS:
     gain                           Show persistent token savings stats
+    dashboard [--port=N]           Open web dashboard (default: http://localhost:3333)
     init [--global]                Install shell aliases (.zshrc/.bashrc)
     read <file> [-m mode]          Read file with compression
     diff <file1> <file2>           Compressed file diff
@@ -141,6 +150,7 @@ OPTIONS:
 EXAMPLES:
     lean-ctx -c \"git status\"       Compressed git output
     lean-ctx gain                  Show savings statistics
+    lean-ctx dashboard             Open web dashboard at localhost:3333
     lean-ctx init --global         Install shell aliases
     lean-ctx read src/main.rs -m map
     lean-ctx grep \"pub fn\" src/
