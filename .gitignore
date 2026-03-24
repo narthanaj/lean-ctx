@@ -4,6 +4,8 @@ dist/
 *.tsbuildinfo
 .env
 deploy.sh
+Dockerfile.web
+website/
 /src/
 /package.json
 /package-lock.json
