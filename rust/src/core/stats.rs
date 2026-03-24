@@ -59,8 +59,11 @@ pub fn save(store: &StatsStore) {
     }
 
     let path = dir.join("stats.json");
-    if let Ok(json) = serde_json::to_string_pretty(store) {
-        let _ = std::fs::write(path, json);
+    if let Ok(json) = serde_json::to_string(store) {
+        let tmp = dir.join(".stats.json.tmp");
+        if std::fs::write(&tmp, &json).is_ok() {
+            let _ = std::fs::rename(&tmp, &path);
+        }
     }
 }
 
@@ -368,7 +371,7 @@ pub fn format_gain() -> String {
 
     o.push(String::new());
     o.push(format!("  {DIM}{ln56}{RST}"));
-    o.push(format!("  {DIM}lean-ctx v1.6.1  |  leanctx.com  |  lean-ctx dashboard{RST}"));
+    o.push(format!("  {DIM}lean-ctx v1.7.0  |  leanctx.com  |  lean-ctx dashboard{RST}"));
     o.push(String::new());
 
     o.join("\n")

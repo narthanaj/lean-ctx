@@ -17,7 +17,7 @@ impl ServerHandler for LeanCtxServer {
         let instructions = build_instructions(self.crp_mode);
 
         InitializeResult::new(capabilities)
-            .with_server_info(Implementation::new("lean-ctx", "1.6.1"))
+            .with_server_info(Implementation::new("lean-ctx", "1.7.0"))
             .with_instructions(instructions)
     }
 
@@ -52,6 +52,27 @@ impl ServerHandler for LeanCtxServer {
                                 }
                             },
                             "required": ["path"]
+                        }),
+                    ),
+                    tool_def(
+                        "ctx_multi_read",
+                        "Read multiple files in one MCP round-trip. Same modes as ctx_read (full, map, signatures, diff, aggressive, entropy). \
+                        Results are joined with --- dividers; ends with aggregate summary (files read, tokens saved).",
+                        json!({
+                            "type": "object",
+                            "properties": {
+                                "paths": {
+                                    "type": "array",
+                                    "items": { "type": "string" },
+                                    "description": "Absolute file paths to read, in order"
+                                },
+                                "mode": {
+                                    "type": "string",
+                                    "enum": ["full", "signatures", "map", "diff", "aggressive", "entropy"],
+                                    "description": "Compression mode (default: full)"
+                                }
+                            },
+                            "required": ["paths"]
                         }),
                     ),
                     tool_def(
@@ -188,6 +209,29 @@ impl ServerHandler for LeanCtxServer {
                     let tokens = crate::core::tokens::count_tokens(&output);
                     drop(cache);
                     self.record_call("ctx_read", original, original.saturating_sub(tokens), Some(mode)).await;
+                    output
+                }
+                "ctx_multi_read" => {
+                    let paths = get_str_array(args, "paths")
+                        .ok_or_else(|| ErrorData::invalid_params("paths array is required", None))?;
+                    let mode = get_str(args, "mode").unwrap_or_else(|| "full".to_string());
+                    let mut cache = self.cache.write().await;
+                    let output = crate::tools::ctx_multi_read::handle(&mut cache, &paths, &mode, self.crp_mode);
+                    let mut total_original: usize = 0;
+                    for path in &paths {
+                        total_original =
+                            total_original.saturating_add(cache.get(path).map(|e| e.original_tokens).unwrap_or(0));
+                    }
+                    let tokens = crate::core::tokens::count_tokens(&output);
+                    drop(cache);
+                    self
+                        .record_call(
+                            "ctx_multi_read",
+                            total_original,
+                            total_original.saturating_sub(tokens),
+                            Some(mode),
+                        )
+                        .await;
                     output
                 }
                 "ctx_tree" => {
@@ -395,6 +439,16 @@ fn tool_def(name: &'static str, description: &'static str, schema_value: Value) 
         _ => Map::new(),
     };
     Tool::new(name, description, Arc::new(schema))
+}
+
+fn get_str_array(args: &Option<serde_json::Map<String, Value>>, key: &str) -> Option<Vec<String>> {
+    let arr = args.as_ref()?.get(key)?.as_array()?;
+    let mut out = Vec::with_capacity(arr.len());
+    for v in arr {
+        let s = v.as_str()?.to_string();
+        out.push(s);
+    }
+    Some(out)
 }
 
 fn get_str(args: &Option<serde_json::Map<String, Value>>, key: &str) -> Option<String> {

@@ -74,13 +74,52 @@ const QUERY_RUBY: &str = r#"
 (module name: (_) @name) @def
 "#;
 
+const QUERY_CSHARP: &str = r#"
+(method_declaration name: (identifier) @name) @def
+(class_declaration name: (identifier) @name) @def
+(interface_declaration name: (identifier) @name) @def
+(struct_declaration name: (identifier) @name) @def
+(enum_declaration name: (identifier) @name) @def
+(record_declaration name: (identifier) @name) @def
+(namespace_declaration name: (identifier) @name) @def
+"#;
+
+/// Queries [tree-sitter-kotlin-ng](https://crates.io/crates/tree-sitter-kotlin-ng). Interfaces use `class_declaration` with an `interface` keyword (no separate `interface_declaration` node).
+const QUERY_KOTLIN: &str = r#"
+(function_declaration name: (identifier) @name) @def
+(class_declaration name: (identifier) @name) @def
+(object_declaration name: (identifier) @name) @def
+"#;
+
+/// Swift grammar uses `class_declaration` for class, struct, enum, actor, and extension (via `declaration_kind`).
+const QUERY_SWIFT: &str = r#"
+(function_declaration name: (simple_identifier) @name) @def
+(class_declaration name: (type_identifier) @name) @def
+(protocol_declaration name: (type_identifier) @name) @def
+(protocol_function_declaration name: (simple_identifier) @name) @def
+"#;
+
+const QUERY_PHP: &str = r#"
+(function_definition name: (name) @name) @def
+(class_declaration name: (name) @name) @def
+(interface_declaration name: (name) @name) @def
+(trait_declaration name: (name) @name) @def
+(method_declaration name: (name) @name) @def
+"#;
+
 pub fn extract_signatures_ts(content: &str, file_ext: &str) -> Option<Vec<Signature>> {
     let language = get_language(file_ext)?;
     let query_src = get_query(file_ext)?;
 
-    let mut parser = Parser::new();
-    parser.set_language(&language).ok()?;
-    let tree = parser.parse(content, None)?;
+    thread_local! {
+        static PARSER: std::cell::RefCell<Parser> = std::cell::RefCell::new(Parser::new());
+    }
+
+    let tree = PARSER.with(|p| {
+        let mut parser = p.borrow_mut();
+        let _ = parser.set_language(&language);
+        parser.parse(content, None)
+    })?;
     let query = Query::new(&language, query_src).ok()?;
 
     let def_idx = find_capture_index(&query, "def")?;
@@ -129,6 +168,10 @@ fn get_language(ext: &str) -> Option<Language> {
         "c" | "h" => tree_sitter_c::LANGUAGE.into(),
         "cpp" | "cc" | "cxx" | "hpp" | "hxx" | "hh" => tree_sitter_cpp::LANGUAGE.into(),
         "rb" => tree_sitter_ruby::LANGUAGE.into(),
+        "cs" => tree_sitter_c_sharp::LANGUAGE.into(),
+        "kt" | "kts" => tree_sitter_kotlin_ng::LANGUAGE.into(),
+        "swift" => tree_sitter_swift::LANGUAGE.into(),
+        "php" => tree_sitter_php::LANGUAGE_PHP.into(),
         _ => return None,
     })
 }
@@ -144,6 +187,10 @@ fn get_query(ext: &str) -> Option<&'static str> {
         "c" | "h" => QUERY_C,
         "cpp" | "cc" | "cxx" | "hpp" | "hxx" | "hh" => QUERY_CPP,
         "rb" => QUERY_RUBY,
+        "cs" => QUERY_CSHARP,
+        "kt" | "kts" => QUERY_KOTLIN,
+        "swift" => QUERY_SWIFT,
+        "php" => QUERY_PHP,
         _ => return None,
     })
 }
@@ -169,15 +216,30 @@ fn node_to_signature(node: &Node, name: &str, ext: &str, source: &[u8]) -> Optio
         "type_item" => rust_struct_like(node, name, "type"),
         "const_item" => rust_const(node, name, source),
 
-        "function_declaration" => ts_or_go_function(node, name, ext, source),
+        "function_declaration" => match ext {
+            "kt" | "kts" => kotlin_function(node, name, source),
+            "swift" => swift_function(node, name, source),
+            _ => ts_or_go_function(node, name, ext, source),
+        },
+        "protocol_function_declaration" => swift_protocol_function(node, name, source),
         "function_definition" => py_or_c_function(node, name, ext, start_col, source),
         "method_definition" => ts_method(node, name, source),
         "method_declaration" => go_or_java_method(node, name, ext, source),
         "variable_declarator" => ts_arrow_function(node, name, source),
 
         "class_declaration" | "abstract_class_declaration" | "class_specifier" => {
-            class_like(node, name, "class", ext, source)
+            if ext == "swift" {
+                swift_class_declaration(node, name, source)
+            } else {
+                class_like(node, name, "class", ext, source)
+            }
         }
+        "object_declaration" => class_like(node, name, "class", ext, source),
+        "record_declaration" => class_like(node, name, "class", ext, source),
+        "protocol_declaration" => class_like(node, name, "interface", ext, source),
+        "trait_declaration" => class_like(node, name, "trait", ext, source),
+        "namespace_declaration" => simple_def(name, "class"),
+        "struct_declaration" => class_like(node, name, "struct", ext, source),
         "class_definition" => Some(Signature {
             kind: "class",
             name: name.to_string(),
@@ -214,6 +276,7 @@ fn node_to_signature(node: &Node, name: &str, ext: &str, source: &[u8]) -> Optio
         "enum_declaration" | "enum_specifier" => {
             let exported = match ext {
                 "java" => has_modifier(node, "public", source),
+                "cs" => csharp_has_modifier_text(node, "public", source),
                 _ => true,
             };
             Some(Signature {
@@ -382,7 +445,7 @@ fn py_or_c_function(
     source: &[u8],
 ) -> Option<Signature> {
     match ext {
-        "py" => {
+        "py" | "php" => {
             let params = field_text(node, "parameters", source);
             let ret = field_text(node, "return_type", source);
             let is_method = start_col > 0;
@@ -450,6 +513,34 @@ fn go_or_java_method(node: &Node, name: &str, ext: &str, source: &[u8]) -> Optio
                 indent: if is_method { 2 } else { 0 },
             })
         }
+        "cs" => {
+            let params = field_text(node, "parameters", source);
+            let ret = field_text(node, "returns", source);
+            let is_method = node.start_position().column > 0;
+            Some(Signature {
+                kind: if is_method { "method" } else { "fn" },
+                name: name.to_string(),
+                params: super::signatures::compact_params(&strip_parens(&params)),
+                return_type: ret.trim().to_string(),
+                is_async: false,
+                is_exported: csharp_has_modifier_text(node, "public", source),
+                indent: if is_method { 2 } else { 0 },
+            })
+        }
+        "php" => {
+            let params = field_text(node, "parameters", source);
+            let ret = field_text(node, "return_type", source);
+            let is_method = node.start_position().column > 0;
+            Some(Signature {
+                kind: if is_method { "method" } else { "fn" },
+                name: name.to_string(),
+                params: super::signatures::compact_params(&strip_parens(&params)),
+                return_type: clean_return_type(&ret),
+                is_async: false,
+                is_exported: true,
+                indent: if is_method { 2 } else { 0 },
+            })
+        }
         _ => None,
     }
 }
@@ -506,6 +597,150 @@ fn ruby_method(node: &Node, name: &str, source: &[u8]) -> Option<Signature> {
 }
 
 // ---------------------------------------------------------------------------
+// Kotlin (tree-sitter-kotlin-ng) / Swift / C# helpers
+// ---------------------------------------------------------------------------
+
+fn kotlin_function(node: &Node, name: &str, source: &[u8]) -> Option<Signature> {
+    let mut params = String::new();
+    let mut ret = String::new();
+    let mut seen_params = false;
+    let mut cursor = node.walk();
+    for child in node.children(&mut cursor) {
+        if child.kind() == "function_value_parameters" {
+            params = child.utf8_text(source).unwrap_or("").to_string();
+            seen_params = true;
+        } else if seen_params && child.kind() == "type" {
+            ret = child.utf8_text(source).unwrap_or("").to_string();
+            ret = ret.trim_start_matches(':').trim().to_string();
+            break;
+        }
+    }
+    let is_method = node.start_position().column > 0;
+    let exported = kotlin_modifiers_text(node, source)
+        .map(|t| !t.contains("private"))
+        .unwrap_or(true);
+    Some(Signature {
+        kind: if is_method { "method" } else { "fn" },
+        name: name.to_string(),
+        params: super::signatures::compact_params(&strip_parens(&params)),
+        return_type: clean_return_type(&ret),
+        is_async: false,
+        is_exported: exported,
+        indent: if is_method { 2 } else { 0 },
+    })
+}
+
+fn kotlin_modifiers_text<'a>(node: &Node, source: &'a [u8]) -> Option<&'a str> {
+    let mut cursor = node.walk();
+    for c in node.children(&mut cursor) {
+        if c.kind() == "modifiers" {
+            return c.utf8_text(source).ok();
+        }
+    }
+    None
+}
+
+fn kotlin_declaration_exported(node: &Node, source: &[u8]) -> bool {
+    kotlin_modifiers_text(node, source)
+        .map(|t| !t.contains("private"))
+        .unwrap_or(true)
+}
+
+fn swift_function(node: &Node, name: &str, source: &[u8]) -> Option<Signature> {
+    let ret = field_text(node, "return_type", source);
+    let params = swift_parameters_before_body(node, source);
+    let is_async = has_named_child(node, "async");
+    let is_method = node.start_position().column > 0;
+    Some(Signature {
+        kind: if is_method { "method" } else { "fn" },
+        name: name.to_string(),
+        params: super::signatures::compact_params(&strip_parens(&params)),
+        return_type: clean_return_type(&ret),
+        is_async,
+        is_exported: true,
+        indent: if is_method { 2 } else { 0 },
+    })
+}
+
+fn swift_protocol_function(node: &Node, name: &str, source: &[u8]) -> Option<Signature> {
+    let ret = field_text(node, "return_type", source);
+    Some(Signature {
+        kind: "fn",
+        name: name.to_string(),
+        params: String::new(),
+        return_type: clean_return_type(&ret),
+        is_async: has_named_child(node, "async"),
+        is_exported: true,
+        indent: 2,
+    })
+}
+
+fn swift_class_declaration(node: &Node, name: &str, source: &[u8]) -> Option<Signature> {
+    let kind = node
+        .child_by_field_name("declaration_kind")
+        .and_then(|n| n.utf8_text(source).ok())
+        .unwrap_or("class");
+    let kind_static: &'static str = match kind {
+        "struct" => "struct",
+        "enum" => "enum",
+        _ => "class",
+    };
+    Some(Signature {
+        kind: kind_static,
+        name: name.to_string(),
+        params: String::new(),
+        return_type: String::new(),
+        is_async: false,
+        is_exported: true,
+        indent: 0,
+    })
+}
+
+fn swift_parameters_before_body(node: &Node, source: &[u8]) -> String {
+    let end_byte = node
+        .child_by_field_name("body")
+        .map(|b| b.start_byte())
+        .unwrap_or(usize::MAX);
+    let mut parts: Vec<String> = Vec::new();
+    fn walk(n: &Node, end_byte: usize, source: &[u8], parts: &mut Vec<String>) {
+        if n.start_byte() >= end_byte {
+            return;
+        }
+        if n.kind() == "parameter" {
+            if let Ok(t) = n.utf8_text(source) {
+                parts.push(t.to_string());
+            }
+        }
+        let mut c = n.walk();
+        for child in n.children(&mut c) {
+            if child.start_byte() < end_byte {
+                walk(&child, end_byte, source, parts);
+            }
+        }
+    }
+    walk(node, end_byte, source, &mut parts);
+    if parts.is_empty() {
+        String::new()
+    } else {
+        format!("({})", parts.join(", "))
+    }
+}
+
+fn csharp_has_modifier_text(node: &Node, needle: &str, source: &[u8]) -> bool {
+    let mut cursor = node.walk();
+    for c in node.children(&mut cursor) {
+        if c.kind() == "modifier" {
+            if let Ok(t) = c.utf8_text(source) {
+                if t.contains(needle) {
+                    return true;
+                }
+            }
+        }
+    }
+    false
+}
+
+// ---------------------------------------------------------------------------
 // Shared helpers
 // ---------------------------------------------------------------------------
 
@@ -519,6 +754,8 @@ fn class_like(
     let exported = match ext {
         "ts" | "tsx" | "js" | "jsx" => is_in_export(node),
         "java" => has_modifier(node, "public", source),
+        "cs" => csharp_has_modifier_text(node, "public", source),
+        "kt" | "kts" => kotlin_declaration_exported(node, source),
         _ => true,
     };
     Some(Signature {
@@ -880,6 +1117,98 @@ const internal = (x: number) => x * 2;
 
         let internal = sigs.iter().find(|s| s.name == "internal").unwrap();
         assert!(!internal.is_exported);
+    }
+
+    #[test]
+    fn test_csharp_signatures() {
+        let src = r#"
+namespace Demo;
+public record Person(string Name);
+public interface IRepo { void Save(); }
+public struct Point { public int X; }
+public enum Role { Admin, User }
+public class Service {
+    public string Hello(string name) => name;
+}
+"#;
+        let sigs = extract_signatures_ts(src, "cs").unwrap();
+        let names: Vec<&str> = sigs.iter().map(|s| s.name.as_str()).collect();
+        assert!(names.contains(&"Person"), "got {:?}", names);
+        assert!(names.contains(&"IRepo"));
+        assert!(names.contains(&"Point"));
+        assert!(names.contains(&"Role"));
+        assert!(names.contains(&"Service"));
+        assert!(names.contains(&"Hello"));
+    }
+
+    #[test]
+    fn test_kotlin_signatures() {
+        let src = r#"
+class UserService {
+    fun greet(name: String): String = "Hi $name"
+}
+object Factory {
+    fun build(): UserService = UserService()
+}
+interface Handler {
+    fun handle()
+}
+"#;
+        let sigs = extract_signatures_ts(src, "kt").unwrap();
+        let names: Vec<&str> = sigs.iter().map(|s| s.name.as_str()).collect();
+        assert!(names.contains(&"UserService"), "got {:?}", names);
+        assert!(names.contains(&"Factory"));
+        assert!(names.contains(&"Handler"));
+        assert!(names.contains(&"greet"));
+        assert!(names.contains(&"build"));
+        assert!(names.contains(&"handle"));
+    }
+
+    #[test]
+    fn test_swift_signatures() {
+        let src = r#"
+class Box {
+    func size() -> Int { 0 }
+}
+struct Point {
+    var x: Int
+}
+enum Kind { case a, b }
+protocol Drawable {
+    func draw()
+}
+func topLevel() {}
+"#;
+        let sigs = extract_signatures_ts(src, "swift").unwrap();
+        let names: Vec<&str> = sigs.iter().map(|s| s.name.as_str()).collect();
+        assert!(names.contains(&"Box"), "got {:?}", names);
+        assert!(names.contains(&"Point"));
+        assert!(names.contains(&"Kind"));
+        assert!(names.contains(&"Drawable"));
+        assert!(names.contains(&"size"));
+        assert!(names.contains(&"draw"));
+        assert!(names.contains(&"topLevel"));
+    }
+
+    #[test]
+    fn test_php_signatures() {
+        let src = r#"<?php
+function helper(int $x): int { return $x; }
+class User {
+    public function name(): string { return ''; }
+}
+interface IAuth { public function check(): bool; }
+trait Loggable { function log(): void {} }
+"#;
+        let sigs = extract_signatures_ts(src, "php").unwrap();
+        let names: Vec<&str> = sigs.iter().map(|s| s.name.as_str()).collect();
+        assert!(names.contains(&"helper"), "got {:?}", names);
+        assert!(names.contains(&"User"));
+        assert!(names.contains(&"name"));
+        assert!(names.contains(&"IAuth"));
+        assert!(names.contains(&"check"));
+        assert!(names.contains(&"Loggable"));
+        assert!(names.contains(&"log"));
     }
 
     #[test]

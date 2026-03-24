@@ -38,7 +38,7 @@ pub fn extract_deps(content: &str, ext: &str) -> DepInfo {
         "rs" => extract_rust_deps(content),
         "py" => extract_python_deps(content),
         "go" => extract_go_deps(content),
-        _ => extract_ts_deps(content),
+        _ => DepInfo { imports: Vec::new(), exports: Vec::new() },
     }
 }
 

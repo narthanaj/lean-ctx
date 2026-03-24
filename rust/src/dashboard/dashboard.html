@@ -92,7 +92,7 @@ tr:hover td{background:var(--surface2)}
   <header>
     <div class="logo">
       <h1>Lean<span>CTX</span></h1>
-      <span class="version">v1.6.1</span>
+      <span class="version">v1.7.0</span>
     </div>
     <div class="hdr-right">
       <span id="lastUpdate" style="font-size:11px;color:var(--muted)"></span>
@@ -112,7 +112,7 @@ function fmt(n){
 }
 function fmtFull(n){return n.toLocaleString('en-US')}
 function pct(a,b){return b>0?Math.round(a/b*100):0}
-function cost(tokens){return'$'+(tokens/1e6*15).toFixed(2)}
+function cost(tokens){return'$'+(tokens/1e6*2.5).toFixed(2)}
 function isMcp(name){return name.startsWith('ctx_')}
 function source(name){return isMcp(name)?'mcp':'hook'}
 function srcBadge(name){
@@ -198,7 +198,7 @@ function render(d){
         <div class="kpi-icon">&#36;</div>
         <div class="kpi-val">${costSaved}</div>
         <div class="kpi-label">Cost Saved</div>
-        <div class="kpi-sub">@ $15/M input tokens</div>
+        <div class="kpi-sub">@ $2.50/M input tokens</div>
       </div>
     </div>
 

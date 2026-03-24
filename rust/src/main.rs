@@ -3,6 +3,7 @@ use anyhow::Result;
 mod cli;
 mod core;
 mod dashboard;
+mod doctor;
 mod server;
 mod shell;
 mod tools;
@@ -87,8 +88,12 @@ fn main() {
                 cli::cmd_config(&rest);
                 return;
             }
+            "doctor" => {
+                doctor::run();
+                return;
+            }
             "--version" | "-V" => {
-                println!("lean-ctx 1.6.1");
+                println!("lean-ctx 1.7.0");
                 return;
             }
             "--help" | "-h" => {
@@ -139,7 +144,7 @@ fn run_mcp_server() -> Result<()> {
             .with_writer(std::io::stderr)
             .init();
 
-        tracing::info!("lean-ctx v1.6.1 MCP server starting");
+        tracing::info!("lean-ctx v1.7.0 MCP server starting");
 
         let server = tools::create_server();
         let transport = rmcp::transport::io::stdio();
@@ -171,7 +176,7 @@ fn shell_quote(s: &str) -> String {
 
 fn print_help() {
     println!(
-        "lean-ctx 1.6.1 — Hybrid Context Optimizer with TDD (Shell Hook + MCP Server)
+        "lean-ctx 1.7.0 — Hybrid Context Optimizer with TDD (Shell Hook + MCP Server)
 
 60+ compression patterns | 9 MCP tools | Token Dense Dialect
 
@@ -197,6 +202,7 @@ COMMANDS:
     discover                       Find uncompressed commands in shell history
     session                        Show adoption statistics
     config                         Show/edit configuration (~/.lean-ctx/config.toml)
+    doctor                         Run installation and environment diagnostics
 
 SHELL HOOK PATTERNS (60+):
     git       status, log, diff, add, commit, push, pull, fetch, clone,
@@ -236,6 +242,7 @@ EXAMPLES:
     lean-ctx dashboard             Open web dashboard at localhost:3333
     lean-ctx discover              Find missed savings in shell history
     lean-ctx init --global         Install shell aliases
+    lean-ctx doctor                Check PATH, config, MCP, and dashboard port
     lean-ctx read src/main.rs -m map
     lean-ctx grep \"pub fn\" src/
     lean-ctx deps .

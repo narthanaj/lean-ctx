@@ -34,16 +34,17 @@ fn handle_with_options(cache: &mut SessionCache, path: &str, mode: &str, fresh: 
         return handle_diff(cache, path, &file_ref);
     }
 
-    if let Some(existing) = cache.get(path) {
+    if cache.get(path).is_some() {
         if mode == "full" {
-            let msg = format!(
+            cache.record_cache_hit(path);
+            let existing = cache.get(path).unwrap();
+            return format!(
                 "{file_ref}={short} [cached {}t {}L ∅]",
-                existing.read_count + 1,
+                existing.read_count,
                 existing.line_count
             );
-            let (_, _is_hit) = cache.store(path, existing.content.clone());
-            return msg;
         }
+        let existing = cache.get(path).unwrap();
         let content = existing.content.clone();
         let original_tokens = existing.original_tokens;
         return process_mode(&content, mode, &file_ref, &short, ext, original_tokens, crp_mode);
@@ -207,10 +208,47 @@ fn process_mode(
             let savings = protocol::format_savings(original_tokens, sent);
             format!("{output}\n{savings}")
         }
+        mode if mode.starts_with("lines:") => {
+            let range_str = &mode[6..];
+            let extracted = extract_line_range(content, range_str);
+            let header = format!("{file_ref}={short} [{line_count}L lines:{range_str}]");
+            let sent = count_tokens(&extracted);
+            let savings = protocol::format_savings(original_tokens, sent);
+            format!("{header}\n{extracted}\n{savings}")
+        }
         _ => {
             let header = build_header(file_ref, short, ext, content, line_count, true);
             format!("{header}\n{content}")
         }
+    }
+}
+
+fn extract_line_range(content: &str, range_str: &str) -> String {
+    let lines: Vec<&str> = content.lines().collect();
+    let total = lines.len();
+    let mut selected = Vec::new();
+
+    for part in range_str.split(',') {
+        let part = part.trim();
+        if let Some((start_s, end_s)) = part.split_once('-') {
+            let start = start_s.trim().parse::<usize>().unwrap_or(1).max(1);
+            let end = end_s.trim().parse::<usize>().unwrap_or(total).min(total);
+            for i in start..=end {
+                if i >= 1 && i <= total {
+                    selected.push(format!("{i:>4}| {}", lines[i - 1]));
+                }
+            }
+        } else if let Ok(n) = part.parse::<usize>() {
+            if n >= 1 && n <= total {
+                selected.push(format!("{n:>4}| {}", lines[n - 1]));
+            }
+        }
+    }
+
+    if selected.is_empty() {
+        "No lines matched the range.".to_string()
+    } else {
+        selected.join("\n")
     }
 }
 

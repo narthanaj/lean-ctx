@@ -1,6 +1,6 @@
 # lean-ctx
 
-**Hybrid Context Optimizer with Token Dense Dialect (TDD). Shell Hook + MCP Server. tree-sitter AST parsing for 10 languages. Single Rust binary.**
+**Hybrid Context Optimizer with Token Dense Dialect (TDD). Shell Hook + MCP Server. tree-sitter AST parsing for 14 languages. Single Rust binary.**
 
 [![Crates.io](https://img.shields.io/crates/v/lean-ctx)](https://crates.io/crates/lean-ctx)
 [![Downloads](https://img.shields.io/crates/d/lean-ctx)](https://crates.io/crates/lean-ctx)
@@ -8,14 +8,14 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Discord](https://img.shields.io/badge/Discord-Join-5865F2?logo=discord&logoColor=white)](https://discord.gg/pTHkG9Hew9)
 
-[Website](https://leanctx.com) · [Install](#installation) · [Quick Start](#quick-start) · [CLI Reference](#cli-commands) · [MCP Tools](#9-mcp-tools) · [vs RTK](#lean-ctx-vs-rtk) · [Discord](https://discord.gg/pTHkG9Hew9)
+[Website](https://leanctx.com) · [Install](#installation) · [Quick Start](#quick-start) · [CLI Reference](#cli-commands) · [MCP Tools](#10-mcp-tools) · [vs RTK](#lean-ctx-vs-rtk) · [Discord](https://discord.gg/pTHkG9Hew9)
 
 ---
 
 lean-ctx reduces LLM token consumption by **up to 99%** through two complementary strategies in a single binary:
 
 1. **Shell Hook** — Transparently compresses CLI output before it reaches the LLM. Works without LLM cooperation.
-2. **MCP Server** — 9 tools for cached file reads, dependency maps, cache management, entropy analysis, and session metrics. Works with Cursor, GitHub Copilot, Claude Code, Windsurf, OpenAI Codex, Google Antigravity, OpenCode, and any MCP-compatible editor. Shell hook also benefits OpenClaw via transparent compression.
+2. **MCP Server** — 10 tools for cached file reads, dependency maps, cache management, entropy analysis, and session metrics. Works with Cursor, GitHub Copilot, Claude Code, Windsurf, OpenAI Codex, Google Antigravity, OpenCode, and any MCP-compatible editor. Shell hook also benefits OpenClaw via transparent compression.
 
 ## Token Savings (Typical Cursor/Claude Code Session)
 
@@ -74,7 +74,7 @@ cp target/release/lean-ctx ~/.local/bin/
 ### Verify Installation
 
 ```bash
-lean-ctx --version   # Should show "lean-ctx 1.6.1"
+lean-ctx --version   # Should show "lean-ctx 1.7.0"
 lean-ctx gain        # Should show token savings stats
 ```
 
@@ -164,6 +164,7 @@ lean-ctx read file.rs -m map             # Dependency graph + API signatures (~1
 lean-ctx read file.rs -m signatures      # Function/class signatures only (~15% tokens)
 lean-ctx read file.rs -m aggressive      # Syntax-stripped content (~40% tokens)
 lean-ctx read file.rs -m entropy         # Shannon entropy filtered (~30% tokens)
+lean-ctx read file.rs -m "lines:10-50,80-90"  # Specific line ranges (comma-separated)
 lean-ctx diff file1.rs file2.rs          # Compressed file diff
 lean-ctx grep "pattern" src/             # Grouped search results
 lean-ctx find "*.rs" src/                # Compact find results
@@ -185,6 +186,7 @@ lean-ctx discover              # Find uncompressed commands in shell history
 lean-ctx session               # Show adoption statistics
 lean-ctx config                # Show configuration (~/.lean-ctx/config.toml)
 lean-ctx config init           # Create default config file
+lean-ctx doctor                # Diagnostics: PATH, config, aliases, MCP, ports
 lean-ctx --version             # Show version
 lean-ctx --help                # Full help
 ```
@@ -195,9 +197,9 @@ lean-ctx --help                # Full help
 lean-ctx                       # Start MCP server (stdio) — used by editors
 ```
 
-## Shell Hook Patterns (60+)
+## Shell Hook Patterns (75+)
 
-The shell hook applies pattern-based compression for 60+ commands across 14 categories:
+The shell hook applies pattern-based compression for 75+ commands across 19 categories:
 
 | Category | Commands | Savings |
 |---|---|---|
@@ -212,6 +214,12 @@ The shell hook applies pattern-based compression for 60+ commands across 14 cate
 | **Linters** (4) | eslint, biome, prettier, stylelint | -60-70% |
 | **Build Tools** (3) | tsc, next build, vite build | -60-80% |
 | **Test Runners** (8) | jest, vitest, pytest, go test, playwright, cypress, rspec, minitest | -90% |
+| **Terraform** | init, plan, apply, destroy, validate, fmt, state, import, workspace | -60-85% |
+| **Make** | make targets, parallel jobs (`-j`), dry-run (`-n`) | -60-80% |
+| **Maven / Gradle** | compile, test, package, install, clean, dependency trees | -60-85% |
+| **.NET** | `dotnet` build, test, restore, run, publish, pack | -60-85% |
+| **Flutter / Dart** | flutter pub, analyze, test, build; dart pub, analyze, test | -60-85% |
+| **Poetry / uv** | install, sync, lock, run, add, remove; uv pip/sync/run | -60-85% |
 | **Utils** (5) | curl, grep/rg, find, ls, wget | -50-89% |
 | **Data** (3) | env (filtered), JSON schema extraction, log deduplication | -50-80% |
 
@@ -277,7 +285,7 @@ pub struct StatsStore {                          fn ⊛ load() → StatsStore
       ...
 ```
 
-**Visual terminal dashboard** with ANSI colors, Unicode block bars, sparklines, and USD estimates:
+**Visual terminal dashboard** with ANSI colors, Unicode block bars, sparklines, and USD estimates (cost uses **$2.50 per 1M tokens** consistently with the web dashboard and MCP metrics):
 
 ```
 $ lean-ctx gain
@@ -304,22 +312,23 @@ $ lean-ctx gain
   03-23    101 cmds      9.4K saved   46.0%
   03-24    419 cmds      1.7M saved   77.0%
 
-  lean-ctx v1.6.1  |  leanctx.com  |  lean-ctx dashboard
+  lean-ctx v1.7.0  |  leanctx.com  |  lean-ctx dashboard
 ```
 
-## 9 MCP Tools
+## 10 MCP Tools
 
-When configured as an MCP server, lean-ctx provides 9 tools that replace or augment your editor's built-in tools:
+When configured as an MCP server, lean-ctx provides 10 tools that replace or augment your editor's built-in tools:
 
 | Tool | Replaces | Savings |
 |---|---|---|
-| `ctx_read` | File reads — 6 modes: full, map, signatures, diff, aggressive, entropy. Supports `fresh=true` to bypass cache. | 74-99% |
+| `ctx_read` | File reads — modes: full, map, signatures, diff, aggressive, entropy, `lines:N-M` (comma-separated ranges). Supports `fresh=true` to bypass cache. | 74-99% |
+| `ctx_multi_read` | Multiple file reads in one round trip (same modes per file) | 74-99% |
 | `ctx_tree` | Directory listings (ls, find, Glob) | 34-60% |
 | `ctx_shell` | Shell commands | 60-90% |
 | `ctx_search` | Code search (Grep) | 50-80% |
 | `ctx_compress` | Context checkpoint for long conversations | 90-99% |
 | `ctx_benchmark` | Compare all compression strategies with tiktoken counts | — |
-| `ctx_metrics` | Session statistics with USD cost estimates | — |
+| `ctx_metrics` | Session statistics with USD cost estimates ($2.50/1M) | — |
 | `ctx_analyze` | Shannon entropy analysis + mode recommendation | — |
 | `ctx_cache` | Cache management: status, clear, invalidate. Use `clear` when spawned as a subagent. | — |
 
@@ -333,6 +342,7 @@ When configured as an MCP server, lean-ctx provides 9 tools that replace or augm
 | `diff` | Re-reading files that changed | only changed lines |
 | `aggressive` | Large files with boilerplate | ~30-50% |
 | `entropy` | Files with repetitive patterns (Shannon + Jaccard filtering) | ~20-40% |
+| `lines:N-M` | Only specific line ranges (e.g. `lines:10-50,80-90`) | proportional to selected lines |
 
 ### Cache Safety
 
@@ -513,7 +523,7 @@ lean-ctx shell
 
 lean-ctx tracks all compressions (both MCP tools and shell hook) in `~/.lean-ctx/stats.json`:
 
-- Per-command breakdown with token counts and USD estimates
+- Per-command breakdown with token counts and USD estimates ($2.50/1M tokens, aligned with MCP)
 - Color-coded compression bars with Unicode block characters
 - Sparkline trends showing savings trajectory
 - Daily statistics (last 90 days) with rate coloring
@@ -547,15 +557,15 @@ Opens `http://localhost:3333` with:
 |---|---|---|
 | **Architecture** | Shell hook only | **Hybrid: Shell hook + MCP server** |
 | **Language** | Rust | Rust |
-| **CLI compression** | ~50 commands | **60+ patterns** (git, npm, cargo, docker, gh, kubectl, pip, ruff, eslint, prettier, tsc, go, playwright, rubocop, bundle, vitest, curl, wget, JSON, logs...) |
-| **File reading** | `rtk read` (signatures mode) | **6 modes: full (cached), map, signatures, diff, aggressive, entropy** |
+| **CLI compression** | ~50 commands | **75+ patterns** (git, npm, cargo, docker, gh, kubectl, pip, ruff, eslint, prettier, tsc, go, terraform, make, maven, gradle, dotnet, flutter, dart, poetry, uv, playwright, rubocop, bundle, vitest, curl, wget, JSON, logs...) |
+| **File reading** | `rtk read` (signatures mode) | **Modes: full (cached), map, signatures, diff, aggressive, entropy, lines:N-M** |
 | **File caching** | ✗ | ✓ MD5 session cache (re-reads = ~13 tokens) |
-| **Signature engine** | Line-by-line regex | **tree-sitter AST (10 languages)** |
-| **Dependency maps** | ✗ | ✓ import/export extraction (10 languages via tree-sitter) |
+| **Signature engine** | Line-by-line regex | **tree-sitter AST (14 languages)** |
+| **Dependency maps** | ✗ | ✓ import/export extraction (14 languages via tree-sitter) |
 | **Context checkpoints** | ✗ | ✓ `ctx_compress` for long conversations |
 | **Token counting** | Estimated | tiktoken-exact (o200k_base) |
 | **Entropy analysis** | ✗ | ✓ Shannon entropy + Jaccard similarity |
-| **Cost tracking** | ✗ | ✓ USD estimates per session |
+| **Cost tracking** | ✗ | ✓ USD estimates per session ($2.50/1M) |
 | **Token Dense Dialect** | ✗ | ✓ TDD mode: symbol shorthand (λ, §, ∂) + identifier mapping (8-25% extra) |
 | **Thinking reduction** | ✗ | ✓ CRP v2 (30-60% fewer thinking tokens via Cursor Rules) |
 | **Stats & Graphs** | ✓ `rtk gain` (SQLite + ASCII graph) | ✓ Visual terminal dashboard (ANSI colors, Unicode bars, sparklines, USD) + `--graph` + `--daily` + `--json` + web dashboard |
@@ -572,14 +582,14 @@ Opens `http://localhost:3333` with:
 
 Since v1.5.0, lean-ctx uses [tree-sitter](https://tree-sitter.github.io/tree-sitter/) for AST-based signature extraction (enabled by default). This replaces the previous regex-based extractor with accurate parsing of multi-line signatures, arrow functions, and nested definitions.
 
-**10 languages supported**: TypeScript, JavaScript, Rust, Python, Go, Java, C, C++, Ruby
+**14 languages supported**: TypeScript, JavaScript, Rust, Python, Go, Java, C, C++, Ruby, C#, Kotlin, Swift, PHP
 
 | Capability | Regex (old) | tree-sitter (new) |
 |---|---|---|
 | Multi-line signatures | Missed | Fully parsed |
 | Arrow functions | Missed | Fully parsed |
 | Nested classes/methods | Heuristic | AST scope tracking |
-| Languages | 4 | **10** |
+| Languages | 4 | **14** |
 
 Build without tree-sitter for a smaller binary (~5.7 MB vs ~17 MB):
 

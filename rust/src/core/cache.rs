@@ -81,6 +81,21 @@ impl SessionCache {
         self.entries.get(path)
     }
 
+    pub fn record_cache_hit(&mut self, path: &str) -> Option<&CacheEntry> {
+        let ref_label = self.file_refs.get(path).cloned().unwrap_or_else(|| "F?".to_string());
+        if let Some(entry) = self.entries.get_mut(path) {
+            entry.read_count += 1;
+            self.stats.total_reads += 1;
+            self.stats.cache_hits += 1;
+            self.stats.total_original_tokens += entry.original_tokens as u64;
+            let hit_msg = format!("{ref_label} [cached {}t {}L ∅]", entry.read_count, entry.line_count);
+            self.stats.total_sent_tokens += count_tokens(&hit_msg) as u64;
+            Some(entry)
+        } else {
+            None
+        }
+    }
+
     pub fn store(&mut self, path: &str, content: String) -> (CacheEntry, bool) {
         let hash = compute_md5(&content);
         let line_count = content.lines().count();
@@ -148,6 +163,15 @@ impl SessionCache {
     pub fn clear(&mut self) -> usize {
         let count = self.entries.len();
         self.entries.clear();
+        self.file_refs.clear();
+        self.next_ref = 1;
+        self.stats = CacheStats {
+            total_reads: 0,
+            cache_hits: 0,
+            total_original_tokens: 0,
+            total_sent_tokens: 0,
+            files_tracked: 0,
+        };
         count
     }
 }

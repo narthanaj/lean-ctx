@@ -1,6 +1,6 @@
 [package]
 name = "lean-ctx"
-version = "1.6.1"
+version = "1.7.0"
 edition = "2021"
 description = "Hybrid Context Optimizer with Token Dense Dialect (TDD). 60+ compression patterns, Shell Hook + MCP Server. Reduces LLM token consumption by up to 99%."
 license = "MIT"
@@ -28,6 +28,10 @@ tree-sitter = [
   "dep:tree-sitter-c",
   "dep:tree-sitter-cpp",
   "dep:tree-sitter-ruby",
+  "dep:tree-sitter-c-sharp",
+  "dep:tree-sitter-kotlin-ng",
+  "dep:tree-sitter-swift",
+  "dep:tree-sitter-php",
 ]
 
 [dependencies]
@@ -55,6 +59,11 @@ tree-sitter-java = { version = "0.23", optional = true }
 tree-sitter-c = { version = "0.24", optional = true }
 tree-sitter-cpp = { version = "0.23", optional = true }
 tree-sitter-ruby = { version = "0.23", optional = true }
+tree-sitter-c-sharp = { version = "0.23", optional = true }
+# tree-sitter-kotlin (fwcd) caps tree-sitter at <0.23; kotlin-ng matches tree-sitter 0.26.
+tree-sitter-kotlin-ng = { version = "1.1", optional = true }
+tree-sitter-swift = { version = "0.7", optional = true }
+tree-sitter-php = { version = "0.24", optional = true }
 
 [profile.release]
 opt-level = "z"

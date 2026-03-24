@@ -2,9 +2,11 @@ pub mod cargo;
 pub mod curl;
 pub mod deps_cmd;
 pub mod docker;
+pub mod dotnet;
 pub mod env_filter;
 pub mod eslint;
 pub mod find;
+pub mod flutter;
 pub mod gh;
 pub mod git;
 pub mod golang;
@@ -13,22 +15,24 @@ pub mod json_schema;
 pub mod kubectl;
 pub mod log_dedup;
 pub mod ls;
+pub mod make;
+pub mod maven;
 pub mod next_build;
 pub mod npm;
 pub mod pip;
 pub mod playwright;
+pub mod poetry;
 pub mod pnpm;
 pub mod prettier;
 pub mod ruby;
 pub mod ruff;
+pub mod terraform;
 pub mod test;
 pub mod typescript;
 pub mod wget;
 
 pub fn compress_output(command: &str, output: &str) -> Option<String> {
-    let cmd_lower = command.to_lowercase();
-
-    let specific = try_specific_pattern(&cmd_lower, output);
+    let specific = try_specific_pattern(command, output);
     if specific.is_some() {
         return specific;
     }
@@ -48,89 +52,55 @@ pub fn compress_output(command: &str, output: &str) -> Option<String> {
     None
 }
 
-fn try_specific_pattern(cmd_lower: &str, output: &str) -> Option<String> {
-    if cmd_lower.starts_with("git ") {
-        return git::compress(cmd_lower, output);
-    }
+fn try_specific_pattern(cmd: &str, output: &str) -> Option<String> {
+    let cl = cmd.to_ascii_lowercase();
+    let c = cl.as_str();
 
-    if cmd_lower.starts_with("gh ") {
-        return gh::compress(cmd_lower, output);
+    if c.starts_with("git ") { return git::compress(c, output); }
+    if c.starts_with("gh ") { return gh::compress(c, output); }
+    if c == "terraform" || c.starts_with("terraform ") { return terraform::compress(c, output); }
+    if c == "make" || c.starts_with("make ") { return make::compress(c, output); }
+    if c.starts_with("mvn ")
+        || c.starts_with("./mvnw ")
+        || c.starts_with("mvnw ")
+        || c.starts_with("gradle ")
+        || c.starts_with("./gradlew ")
+        || c.starts_with("gradlew ")
+    {
+        return maven::compress(c, output);
     }
-
-    if cmd_lower.starts_with("kubectl ") || cmd_lower.starts_with("k ") {
-        return kubectl::compress(cmd_lower, output);
+    if c.starts_with("kubectl ") || c.starts_with("k ") { return kubectl::compress(c, output); }
+    if c.starts_with("pnpm ") { return pnpm::compress(c, output); }
+    if c.starts_with("npm ") || c.starts_with("yarn ") { return npm::compress(c, output); }
+    if c.starts_with("cargo ") { return cargo::compress(c, output); }
+    if c.starts_with("docker ") || c.starts_with("docker-compose ") { return docker::compress(c, output); }
+    if c.starts_with("pip ") || c.starts_with("pip3 ") || c.starts_with("python -m pip") { return pip::compress(c, output); }
+    if c.starts_with("ruff ") { return ruff::compress(c, output); }
+    if c.starts_with("eslint") || c.starts_with("npx eslint") || c.starts_with("biome ") || c.starts_with("stylelint") { return eslint::compress(c, output); }
+    if c.starts_with("prettier") || c.starts_with("npx prettier") { return prettier::compress(output); }
+    if c.starts_with("go ") || c.starts_with("golangci-lint") || c.starts_with("golint") { return golang::compress(c, output); }
+    if c.starts_with("playwright") || c.starts_with("npx playwright") || c.starts_with("cypress") || c.starts_with("npx cypress") { return playwright::compress(c, output); }
+    if c.starts_with("vitest") || c.starts_with("npx vitest") || c.starts_with("pnpm vitest") { return test::compress(output); }
+    if c.starts_with("next ") || c.starts_with("npx next") || c.starts_with("vite ") || c.starts_with("npx vite") { return next_build::compress(c, output); }
+    if c.starts_with("tsc") || c.contains("typescript") { return typescript::compress(output); }
+    if c.starts_with("rubocop") || c.starts_with("bundle ") || c.starts_with("rake ") || c.starts_with("rails test") { return ruby::compress(c, output); }
+    if c.starts_with("grep ") || c.starts_with("rg ") { return grep::compress(output); }
+    if c.starts_with("find ") { return find::compress(output); }
+    if c.starts_with("ls ") || c == "ls" { return ls::compress(output); }
+    if c.starts_with("curl ") { return curl::compress(output); }
+    if c.starts_with("wget ") { return wget::compress(output); }
+    if c == "env" || c.starts_with("env ") || c.starts_with("printenv") { return env_filter::compress(output); }
+    if c.starts_with("dotnet ") { return dotnet::compress(c, output); }
+    if c.starts_with("flutter ")
+        || (c.starts_with("dart ") && (c.contains(" analyze") || c.ends_with(" analyze")))
+    {
+        return flutter::compress(c, output);
     }
-
-    if cmd_lower.starts_with("pnpm ") {
-        return pnpm::compress(cmd_lower, output);
-    }
-    if cmd_lower.starts_with("npm ") || cmd_lower.starts_with("yarn ") {
-        return npm::compress(cmd_lower, output);
-    }
-
-    if cmd_lower.starts_with("cargo ") {
-        return cargo::compress(cmd_lower, output);
-    }
-
-    if cmd_lower.starts_with("docker ") || cmd_lower.starts_with("docker-compose ") {
-        return docker::compress(cmd_lower, output);
-    }
-
-    if cmd_lower.starts_with("pip ") || cmd_lower.starts_with("pip3 ") || cmd_lower.starts_with("python -m pip") {
-        return pip::compress(cmd_lower, output);
-    }
-
-    if cmd_lower.starts_with("ruff ") {
-        return ruff::compress(cmd_lower, output);
-    }
-
-    if cmd_lower.starts_with("eslint") || cmd_lower.starts_with("npx eslint") || cmd_lower.starts_with("biome ") || cmd_lower.starts_with("stylelint") {
-        return eslint::compress(cmd_lower, output);
-    }
-
-    if cmd_lower.starts_with("prettier") || cmd_lower.starts_with("npx prettier") {
-        return prettier::compress(output);
-    }
-
-    if cmd_lower.starts_with("go ") || cmd_lower.starts_with("golangci-lint") || cmd_lower.starts_with("golint") {
-        return golang::compress(cmd_lower, output);
-    }
-
-    if cmd_lower.starts_with("playwright") || cmd_lower.starts_with("npx playwright") || cmd_lower.starts_with("cypress") || cmd_lower.starts_with("npx cypress") {
-        return playwright::compress(cmd_lower, output);
-    }
-
-    if cmd_lower.starts_with("vitest") || cmd_lower.starts_with("npx vitest") || cmd_lower.starts_with("pnpm vitest") {
-        return test::compress(output);
-    }
-
-    if cmd_lower.starts_with("next ") || cmd_lower.starts_with("npx next") || cmd_lower.starts_with("vite ") || cmd_lower.starts_with("npx vite") {
-        return next_build::compress(cmd_lower, output);
-    }
-
-    if cmd_lower.starts_with("tsc") || cmd_lower.contains("typescript") {
-        return typescript::compress(output);
-    }
-    if cmd_lower.starts_with("rubocop") || cmd_lower.starts_with("bundle ") || cmd_lower.starts_with("rake ") || cmd_lower.starts_with("rails test") {
-        return ruby::compress(cmd_lower, output);
-    }
-    if cmd_lower.starts_with("grep ") || cmd_lower.starts_with("rg ") {
-        return grep::compress(output);
-    }
-    if cmd_lower.starts_with("find ") {
-        return find::compress(output);
-    }
-    if cmd_lower.starts_with("ls ") || cmd_lower == "ls" {
-        return ls::compress(output);
-    }
-    if cmd_lower.starts_with("curl ") {
-        return curl::compress(output);
-    }
-    if cmd_lower.starts_with("wget ") {
-        return wget::compress(output);
-    }
-    if cmd_lower == "env" || cmd_lower.starts_with("env ") || cmd_lower.starts_with("printenv") {
-        return env_filter::compress(output);
+    if c.starts_with("poetry ")
+        || c.starts_with("uv sync")
+        || (c.starts_with("uv ") && c.contains("pip install"))
+    {
+        return poetry::compress(c, output);
     }
 
     None

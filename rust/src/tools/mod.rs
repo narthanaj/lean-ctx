@@ -6,6 +6,7 @@ use tokio::sync::RwLock;
 use crate::core::cache::SessionCache;
 
 pub mod ctx_read;
+pub mod ctx_multi_read;
 pub mod ctx_tree;
 pub mod ctx_shell;
 pub mod ctx_search;
@@ -14,7 +15,6 @@ pub mod ctx_benchmark;
 pub mod ctx_metrics;
 pub mod ctx_analyze;
 
-const DEFAULT_CHECKPOINT_INTERVAL: usize = 10;
 const DEFAULT_CACHE_TTL_SECS: u64 = 300;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -71,10 +71,12 @@ pub struct ToolCallRecord {
 
 impl LeanCtxServer {
     pub fn new() -> Self {
+        let config = crate::core::config::Config::load();
+
         let interval = std::env::var("LEAN_CTX_CHECKPOINT_INTERVAL")
             .ok()
             .and_then(|v| v.parse().ok())
-            .unwrap_or(DEFAULT_CHECKPOINT_INTERVAL);
+            .unwrap_or(config.checkpoint_interval as usize);
 
         let ttl = std::env::var("LEAN_CTX_CACHE_TTL")
             .ok()
