@@ -3,11 +3,10 @@
 **Hybrid Context Optimizer with Token Dense Dialect (TDD). Shell Hook + MCP Server. Single Rust binary, zero dependencies.**
 
 [![Crates.io](https://img.shields.io/crates/v/lean-ctx)](https://crates.io/crates/lean-ctx)
-[![Downloads](https://img.shields.io/crates/d/lean-ctx)](https://crates.io/crates/lean-ctx)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Discord](https://img.shields.io/badge/Discord-Join-5865F2?logo=discord&logoColor=white)](https://discord.gg/pTHkG9Hew9)
 
-[Website](https://leanctx.com) · [Install](#installation) · [Quick Start](#quick-start) · [CLI Reference](#cli-commands) · [MCP Tools](#8-mcp-tools) · [TDD](#token-dense-dialect-tdd) · [Dashboard](#persistent-stats--web-dashboard) · [Editor Setup](#editor-configuration) · [vs RTK](#lean-ctx-vs-rtk) · [Discord](https://discord.gg/pTHkG9Hew9)
+[Website](https://leanctx.com) · [Install](#installation) · [Quick Start](#quick-start) · [CLI Reference](#cli-commands) · [MCP Tools](#8-mcp-tools) · [vs RTK](#lean-ctx-vs-rtk) · [Discord](https://discord.gg/pTHkG9Hew9)
 
 ---
 
@@ -35,10 +34,10 @@ lean-ctx reduces LLM token consumption by **89-99%** through two complementary s
 
 ## Installation
 
-### Homebrew (macOS / Linux)
+### Homebrew (macOS)
 
 ```bash
-brew tap yvgude/lean-ctx
+brew tap yvgude/tap
 brew install lean-ctx
 ```
 
@@ -65,7 +64,7 @@ cp target/release/lean-ctx ~/.local/bin/
 ### Verify Installation
 
 ```bash
-lean-ctx --version   # Should show "lean-ctx 1.4.0"
+lean-ctx --version   # Should show "lean-ctx 1.4.1"
 lean-ctx gain        # Should show token savings stats
 ```
 
@@ -189,16 +188,16 @@ The shell hook applies pattern-based compression for 50+ commands across 12 cate
 
 | Category | Commands | Savings |
 |---|---|---|
-| **Git** (19) | status, log, diff, add, commit, push, pull, fetch, clone, branch, checkout, switch, merge, stash, tag, reset, remote, blame, cherry-pick | -70-95% |
+| **Git** (16) | status, log, diff, add, commit, push, pull, fetch, clone, branch, checkout, switch, merge, stash, tag, reset, remote, blame, cherry-pick | -70-95% |
 | **Docker** (10) | build, ps, images, logs, compose ps/up/down, exec, network, volume, inspect | -70-90% |
 | **npm/pnpm/yarn** (6) | install, test, run, list, outdated, audit | -70-90% |
 | **Cargo** (3) | build, test, clippy | -80% |
-| **GitHub CLI** (9) | pr list/view/create/merge, issue list/view/create, run list/view | -60-80% |
+| **GitHub CLI** (8) | pr list/view/create/merge, issue list/view/create, run list/view | -60-80% |
 | **Kubernetes** (8) | get pods/services/deployments, logs, describe, apply, delete, exec, top, rollout | -60-85% |
-| **Python** (7) | pip install/list/outdated/uninstall/check, ruff check/format | -60-80% |
-| **Linters** (4) | eslint, biome, prettier, stylelint | -60-70% |
+| **Python** (8) | pip install/list/outdated/uninstall/check, ruff check/format | -60-80% |
+| **Linters** (3) | eslint, biome, prettier, stylelint | -60-70% |
 | **Build Tools** (3) | tsc, next build, vite build | -60-80% |
-| **Test Runners** (6) | jest, pytest, go test, playwright, cypress, rspec | -90% |
+| **Test Runners** (5) | jest, pytest, go test, playwright, cypress, rspec | -90% |
 | **Utils** (5) | curl, grep/rg, find, ls, wget | -50-89% |
 | **Data** (3) | env (filtered), JSON schema extraction, log deduplication | -50-80% |
 
@@ -470,7 +469,7 @@ Opens `http://localhost:3333` with:
 | **Editors** | Claude Code, OpenCode, Gemini CLI | **All MCP editors (Cursor, Copilot, Claude Code, Windsurf) + shell** |
 | **Config file** | TOML | ✓ TOML (`~/.lean-ctx/config.toml`) |
 | **History analysis** | ✗ | ✓ `lean-ctx discover` — find uncompressed commands |
-| **Homebrew** | ✓ | ✓ `brew tap yvgude/lean-ctx && brew install lean-ctx` |
+| **Homebrew** | ✓ | ✓ `brew tap yvgude/tap && brew install lean-ctx` |
 | **Adoption tracking** | ✗ | ✓ `lean-ctx session` — adoption % |
 
 **Key difference**: RTK compresses CLI output only. lean-ctx compresses CLI output *and* file reads, search results, and project context through the MCP protocol — reaching 89-99% savings where RTK reaches 60-90%.
@@ -481,11 +480,10 @@ Opens `http://localhost:3333` with:
 # Remove shell aliases
 lean-ctx init --global  # re-run to see what was added, then remove from shell profile
 
-# Remove binary (choose one)
-brew uninstall lean-ctx       # if installed via Homebrew
-cargo uninstall lean-ctx      # if installed via cargo
+# Remove binary
+cargo uninstall lean-ctx
 
-# Remove stats and config
+# Remove stats
 rm -rf ~/.lean-ctx
 ```
 
