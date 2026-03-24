@@ -158,6 +158,20 @@ fn normalize_command(command: &str) -> String {
     }
 }
 
+pub struct GainSummary {
+    pub total_saved: u64,
+    pub total_calls: u64,
+}
+
+pub fn load_stats() -> GainSummary {
+    let store = load();
+    let saved = store.total_input_tokens.saturating_sub(store.total_output_tokens);
+    GainSummary {
+        total_saved: saved,
+        total_calls: store.total_commands,
+    }
+}
+
 pub fn format_gain() -> String {
     let store = load();
     let mut out = Vec::new();

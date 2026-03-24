@@ -1,9 +1,11 @@
 use std::path::Path;
 
 use crate::core::compressor;
+use crate::core::config;
 use crate::core::deps as dep_extract;
 use crate::core::patterns::deps_cmd;
 use crate::core::signatures;
+use crate::core::stats;
 use crate::core::tokens::count_tokens;
 use crate::core::protocol;
 use crate::core::entropy;
@@ -171,6 +173,165 @@ pub fn cmd_deps(args: &[String]) {
     }
 }
 
+pub fn cmd_discover(_args: &[String]) {
+    let history = load_shell_history();
+    if history.is_empty() {
+        println!("No shell history found.");
+        return;
+    }
+
+    let compressible_commands = [
+        "git ", "npm ", "yarn ", "pnpm ", "cargo ", "docker ",
+        "kubectl ", "gh ", "pip ", "pip3 ", "eslint", "prettier",
+        "ruff ", "go ", "golangci-lint", "playwright", "cypress",
+        "next ", "vite ", "tsc", "curl ", "wget ", "grep ", "rg ",
+        "find ", "env", "ls ",
+    ];
+
+    let mut missed: std::collections::HashMap<String, u32> = std::collections::HashMap::new();
+    let mut total_compressible = 0u32;
+    let mut via_lean_ctx = 0u32;
+
+    for line in &history {
+        let cmd = line.trim().to_lowercase();
+        if cmd.starts_with("lean-ctx") {
+            via_lean_ctx += 1;
+            continue;
+        }
+        for pattern in &compressible_commands {
+            if cmd.starts_with(pattern) {
+                total_compressible += 1;
+                let key = cmd.split_whitespace().take(2).collect::<Vec<_>>().join(" ");
+                *missed.entry(key).or_insert(0) += 1;
+                break;
+            }
+        }
+    }
+
+    if missed.is_empty() {
+        println!("All compressible commands are already using lean-ctx!");
+        return;
+    }
+
+    let mut sorted: Vec<(String, u32)> = missed.into_iter().collect();
+    sorted.sort_by(|a, b| b.1.cmp(&a.1));
+
+    println!("Found {} compressible commands not using lean-ctx:\n", total_compressible);
+    for (cmd, count) in sorted.iter().take(15) {
+        let est_savings = count * 150;
+        println!("  {cmd:<30} (used {count}x, ~{est_savings} tokens saveable)");
+    }
+    if sorted.len() > 15 {
+        println!("  ... +{} more command types", sorted.len() - 15);
+    }
+
+    let total_est = total_compressible * 150;
+    println!("\nEstimated missed savings: ~{total_est} tokens");
+    println!("Already using lean-ctx: {via_lean_ctx} commands");
+    println!("\nRun 'lean-ctx init --global' to enable compression for all commands.");
+}
+
+pub fn cmd_session() {
+    let history = load_shell_history();
+    let gain = stats::load_stats();
+
+    let compressible_commands = [
+        "git ", "npm ", "yarn ", "pnpm ", "cargo ", "docker ",
+        "kubectl ", "gh ", "pip ", "pip3 ", "eslint", "prettier",
+        "ruff ", "go ", "golangci-lint", "curl ", "wget ", "grep ",
+        "rg ", "find ", "ls ",
+    ];
+
+    let mut total = 0u32;
+    let mut via_hook = 0u32;
+
+    for line in &history {
+        let cmd = line.trim().to_lowercase();
+        if cmd.starts_with("lean-ctx") {
+            via_hook += 1;
+            total += 1;
+        } else {
+            for p in &compressible_commands {
+                if cmd.starts_with(p) {
+                    total += 1;
+                    break;
+                }
+            }
+        }
+    }
+
+    let pct = if total > 0 {
+        (via_hook as f64 / total as f64 * 100.0).round() as u32
+    } else {
+        0
+    };
+
+    println!("lean-ctx session statistics\n");
+    println!("Adoption:    {}% ({}/{} compressible commands)", pct, via_hook, total);
+    println!("Saved:       {} tokens total", gain.total_saved);
+    println!("Calls:       {} compressed", gain.total_calls);
+
+    if total > via_hook {
+        let missed = total - via_hook;
+        let est = missed * 150;
+        println!("Missed:      {} commands (~{} tokens saveable)", missed, est);
+    }
+
+    println!("\nRun 'lean-ctx discover' for details on missed commands.");
+}
+
+pub fn cmd_config(args: &[String]) {
+    let cfg = config::Config::load();
+
+    if args.is_empty() {
+        println!("{}", cfg.show());
+        return;
+    }
+
+    match args[0].as_str() {
+        "init" | "create" => {
+            let default = config::Config::default();
+            match default.save() {
+                Ok(()) => {
+                    let path = config::Config::path()
+                        .map(|p| p.to_string_lossy().to_string())
+                        .unwrap_or_else(|| "~/.lean-ctx/config.toml".to_string());
+                    println!("Created default config at {path}");
+                }
+                Err(e) => eprintln!("Error: {e}"),
+            }
+        }
+        "set" => {
+            if args.len() < 3 {
+                eprintln!("Usage: lean-ctx config set <key> <value>");
+                std::process::exit(1);
+            }
+            let mut cfg = cfg;
+            let key = &args[1];
+            let val = &args[2];
+            match key.as_str() {
+                "ultra_compact" => cfg.ultra_compact = val == "true",
+                "tee_on_error" => cfg.tee_on_error = val == "true",
+                "checkpoint_interval" => {
+                    cfg.checkpoint_interval = val.parse().unwrap_or(15);
+                }
+                _ => {
+                    eprintln!("Unknown config key: {key}");
+                    std::process::exit(1);
+                }
+            }
+            match cfg.save() {
+                Ok(()) => println!("Updated {key} = {val}"),
+                Err(e) => eprintln!("Error saving config: {e}"),
+            }
+        }
+        _ => {
+            eprintln!("Usage: lean-ctx config [init|set <key> <value>]");
+            std::process::exit(1);
+        }
+    }
+}
+
 pub fn cmd_init(args: &[String]) {
     let global = args.iter().any(|a| a == "--global" || a == "-g");
 
@@ -187,9 +348,30 @@ pub fn cmd_init(args: &[String]) {
             .map(|h| h.join(".config/fish/config.fish"))
             .unwrap_or_default();
 
-        let aliases = format!(
-            "\n# lean-ctx shell hook\nalias git 'lean-ctx -c git'\nalias npm 'lean-ctx -c npm'\nalias cargo 'lean-ctx -c cargo'\nalias docker 'lean-ctx -c docker'\nalias ls 'lean-ctx -c ls'\nalias find 'lean-ctx -c find'\nalias grep 'lean-ctx -c grep'\nalias curl 'lean-ctx -c curl'\n"
-        );
+        let aliases = "\n# lean-ctx shell hook — transparent CLI compression (50+ patterns)\n\
+            alias git 'lean-ctx -c git'\n\
+            alias npm 'lean-ctx -c npm'\n\
+            alias pnpm 'lean-ctx -c pnpm'\n\
+            alias yarn 'lean-ctx -c yarn'\n\
+            alias cargo 'lean-ctx -c cargo'\n\
+            alias docker 'lean-ctx -c docker'\n\
+            alias docker-compose 'lean-ctx -c docker-compose'\n\
+            alias kubectl 'lean-ctx -c kubectl'\n\
+            alias k 'lean-ctx -c kubectl'\n\
+            alias gh 'lean-ctx -c gh'\n\
+            alias pip 'lean-ctx -c pip'\n\
+            alias pip3 'lean-ctx -c pip3'\n\
+            alias ruff 'lean-ctx -c ruff'\n\
+            alias go 'lean-ctx -c go'\n\
+            alias golangci-lint 'lean-ctx -c golangci-lint'\n\
+            alias eslint 'lean-ctx -c eslint'\n\
+            alias prettier 'lean-ctx -c prettier'\n\
+            alias tsc 'lean-ctx -c tsc'\n\
+            alias ls 'lean-ctx -c ls'\n\
+            alias find 'lean-ctx -c find'\n\
+            alias grep 'lean-ctx -c grep'\n\
+            alias curl 'lean-ctx -c curl'\n\
+            alias wget 'lean-ctx -c wget'\n";
 
         if let Ok(existing) = std::fs::read_to_string(&config) {
             if existing.contains("lean-ctx") {
@@ -213,19 +395,32 @@ pub fn cmd_init(args: &[String]) {
             dirs::home_dir().map(|h| h.join(".bashrc")).unwrap_or_default()
         };
 
-        let aliases = format!(
-            r#"
-# lean-ctx shell hook — transparent CLI compression
+        let aliases = r#"
+# lean-ctx shell hook — transparent CLI compression (50+ patterns)
 alias git='lean-ctx -c git'
 alias npm='lean-ctx -c npm'
+alias pnpm='lean-ctx -c pnpm'
+alias yarn='lean-ctx -c yarn'
 alias cargo='lean-ctx -c cargo'
 alias docker='lean-ctx -c docker'
+alias docker-compose='lean-ctx -c docker-compose'
+alias kubectl='lean-ctx -c kubectl'
+alias k='lean-ctx -c kubectl'
+alias gh='lean-ctx -c gh'
+alias pip='lean-ctx -c pip'
+alias pip3='lean-ctx -c pip3'
+alias ruff='lean-ctx -c ruff'
+alias go='lean-ctx -c go'
+alias golangci-lint='lean-ctx -c golangci-lint'
+alias eslint='lean-ctx -c eslint'
+alias prettier='lean-ctx -c prettier'
+alias tsc='lean-ctx -c tsc'
 alias ls='lean-ctx -c ls'
 alias find='lean-ctx -c find'
 alias grep='lean-ctx -c grep'
 alias curl='lean-ctx -c curl'
-"#
-        );
+alias wget='lean-ctx -c wget'
+"#;
 
         if let Ok(existing) = std::fs::read_to_string(&rc_file) {
             if existing.contains("lean-ctx shell hook") {
@@ -256,9 +451,44 @@ alias curl='lean-ctx -c curl'
         println!("\nRestart your shell or run: source ~/{}", if is_zsh { ".zshrc" } else { ".bashrc" });
     }
 
-    println!("\nlean-ctx init complete.");
+    println!("\nlean-ctx init complete. (23 aliases installed)");
     println!("Binary: {binary}");
     println!("\nRun 'lean-ctx gain' after using some commands to see your savings.");
+    println!("Run 'lean-ctx discover' to find missed savings in your shell history.");
+}
+
+fn load_shell_history() -> Vec<String> {
+    let shell = std::env::var("SHELL").unwrap_or_default();
+    let home = match dirs::home_dir() {
+        Some(h) => h,
+        None => return Vec::new(),
+    };
+
+    let history_file = if shell.contains("zsh") {
+        home.join(".zsh_history")
+    } else if shell.contains("fish") {
+        home.join(".local/share/fish/fish_history")
+    } else {
+        home.join(".bash_history")
+    };
+
+    match std::fs::read_to_string(&history_file) {
+        Ok(content) => {
+            content
+                .lines()
+                .filter_map(|l| {
+                    let trimmed = l.trim();
+                    if trimmed.starts_with(':') {
+                        trimmed.split(';').nth(1).map(|s| s.to_string())
+                    } else {
+                        Some(trimmed.to_string())
+                    }
+                })
+                .filter(|l| !l.is_empty())
+                .collect()
+        }
+        Err(_) => Vec::new(),
+    }
 }
 
 fn print_savings(original: usize, sent: usize) {

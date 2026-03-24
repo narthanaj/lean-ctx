@@ -1,6 +1,7 @@
 use std::io::{self, BufRead, Write};
 use std::process::{Command, Stdio};
 
+use crate::core::config;
 use crate::core::patterns;
 use crate::core::stats;
 use crate::core::tokens::count_tokens;
@@ -55,13 +56,20 @@ pub fn exec(command: &str) -> i32 {
         }
     }
 
+    let cfg = config::Config::load();
+    if cfg.tee_on_error && exit_code != 0 && !full_output.trim().is_empty() {
+        if let Some(path) = save_tee(command, &full_output) {
+            eprintln!("[lean-ctx: full output saved to {path}]");
+        }
+    }
+
     exit_code
 }
 
 pub fn interactive() {
     let real_shell = detect_shell();
 
-    eprintln!("lean-ctx shell v1.3.2 (wrapping {real_shell})");
+    eprintln!("lean-ctx shell v1.4.0 (wrapping {real_shell})");
     eprintln!("All command output is automatically compressed.");
     eprintln!("Type 'exit' to quit.\n");
 
@@ -188,4 +196,21 @@ fn find_real_shell() -> String {
         }
     }
     "/bin/sh".to_string()
+}
+
+fn save_tee(command: &str, output: &str) -> Option<String> {
+    let tee_dir = dirs::home_dir()?.join(".lean-ctx").join("tee");
+    std::fs::create_dir_all(&tee_dir).ok()?;
+
+    let cmd_slug: String = command
+        .chars()
+        .take(40)
+        .map(|c| if c.is_alphanumeric() || c == '-' { c } else { '_' })
+        .collect();
+    let ts = chrono::Local::now().format("%Y-%m-%d_%H%M%S");
+    let filename = format!("{ts}_{cmd_slug}.log");
+    let path = tee_dir.join(&filename);
+
+    std::fs::write(&path, output).ok()?;
+    Some(path.to_string_lossy().to_string())
 }

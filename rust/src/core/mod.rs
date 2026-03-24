@@ -1,5 +1,6 @@
 pub mod cache;
 pub mod compressor;
+pub mod config;
 pub mod deps;
 pub mod entropy;
 pub mod patterns;

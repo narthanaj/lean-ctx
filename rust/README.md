@@ -33,7 +33,14 @@ lean-ctx reduces LLM token consumption by **89-99%** through two complementary s
 
 ## Installation
 
-### Cargo (recommended)
+### Homebrew (macOS)
+
+```bash
+brew tap yvgude/tap
+brew install lean-ctx
+```
+
+### Cargo
 
 ```bash
 cargo install lean-ctx
@@ -56,13 +63,13 @@ cp target/release/lean-ctx ~/.local/bin/
 ### Verify Installation
 
 ```bash
-lean-ctx --version   # Should show "lean-ctx 1.2.2"
+lean-ctx --version   # Should show "lean-ctx 1.4.0"
 lean-ctx gain        # Should show token savings stats
 ```
 
 ## Token Dense Dialect (TDD)
 
-lean-ctx v1.3.2 introduces **TDD mode** — enabled by default. TDD compresses LLM communication using mathematical symbols and short identifiers:
+lean-ctx introduces **TDD mode** — enabled by default. TDD compresses LLM communication using mathematical symbols and short identifiers:
 
 | Symbol | Meaning |
 |---|---|
@@ -149,10 +156,12 @@ lean-ctx deps .                          # Project dependencies summary
 ### Setup & Analytics
 
 ```bash
-lean-ctx init --global         # Install shell aliases (.zshrc/.bashrc/.config/fish)
+lean-ctx init --global         # Install 23 shell aliases (.zshrc/.bashrc/.config/fish)
 lean-ctx gain                  # Persistent token savings (CLI)
 lean-ctx dashboard             # Web dashboard at localhost:3333
-lean-ctx dashboard --port=8080 # Custom port
+lean-ctx discover              # Find uncompressed commands in shell history
+lean-ctx session               # Show adoption statistics
+lean-ctx config                # Show/edit configuration
 lean-ctx --version             # Show version
 lean-ctx --help                # Full help
 ```
@@ -163,23 +172,23 @@ lean-ctx --help                # Full help
 lean-ctx                       # Start MCP server (stdio) — used by editors
 ```
 
-## Shell Hook Patterns
+## Shell Hook Patterns (50+)
 
-The shell hook applies pattern-based compression for:
+The shell hook applies pattern-based compression for 50+ commands across 12 categories:
 
-| Command | What it does | Savings |
+| Category | Commands | Savings |
 |---|---|---|
-| `git status/log/diff` | Compact status, one-line logs, condensed diffs | -70% |
-| `git add/commit/push` | → "ok", "ok abc1234", "ok main" | -90% |
-| `npm install/build` | Removes progress bars, timing, funding notices | -70% |
-| `cargo build/test` | Summarizes compilation, shows errors only | -80% |
-| `docker build/ps` | Removes layer hashes, progress bars | -80% |
-| `tsc` | Groups TypeScript errors by file | -60% |
-| `grep / rg` | Groups matches by file, shows counts | -50-70% |
-| `find` | Groups by directory, filters noise | -50% |
-| `ls -la` | Removes permissions/owner, shows name + size | -80% |
-| `curl` | JSON schema extraction, HTML summary | -89% |
-| `pytest/jest/vitest/cargo test/go test` | Pass/fail summary, failures only | -90% |
+| **Git** (16) | status, log, diff, add, commit, push, pull, fetch, clone, branch, checkout, merge, stash, tag, reset, remote, blame | -70-95% |
+| **Docker** (10) | build, ps, images, logs, compose, exec, network, volume, inspect | -70-90% |
+| **npm/pnpm/yarn** (6) | install, test, run, list, outdated, audit | -70-90% |
+| **GitHub CLI** (8) | pr list/view/create, issue list/view, run list/view | -60-80% |
+| **Kubernetes** (8) | get, logs, describe, apply, delete, exec, top, rollout | -60-85% |
+| **Python** (8) | pip install/list/outdated, ruff check/format | -60-80% |
+| **Linters** (3) | eslint, biome, prettier | -60-70% |
+| **Build Tools** (3) | tsc, next build, vite build | -60-80% |
+| **Test Runners** (5) | jest, pytest, go test, playwright, cypress | -90% |
+| **Utils** (5) | curl, grep/rg, find, ls, wget | -50-89% |
+| **Data** (3) | env, JSON schema, log deduplication | -50-80% |
 
 Unrecognized commands get generic compression: ANSI stripping, empty line removal, and long output truncation.
 
@@ -391,7 +400,7 @@ Opens `http://localhost:3333` with:
 |---|---|---|
 | **Architecture** | Shell hook only | **Hybrid: Shell hook + MCP server** |
 | **Language** | Rust | Rust |
-| **CLI compression** | ~30 commands | git, npm, cargo, docker, tsc, grep, find, ls, curl, test runners |
+| **CLI compression** | ~30 commands | **50+ patterns** (git, npm, cargo, docker, gh, kubectl, pip, ruff, eslint, go, playwright, curl, wget...) |
 | **File reading** | `rtk read` (signatures mode) | **6 modes: full (cached), map, signatures, diff, aggressive, entropy** |
 | **File caching** | ✗ | ✓ MD5 session cache (re-reads = ~13 tokens) |
 | **Dependency maps** | ✗ | ✓ import/export extraction (TS/JS/Rust/Python/Go) |
@@ -423,6 +432,9 @@ rm -rf ~/.lean-ctx
 ## Contributing
 
 Contributions welcome! Please open an issue or PR on [GitHub](https://github.com/yvgude/lean-ctx).
+
+- [Discord](https://discord.gg/pTHkG9Hew9)
+- [Buy me a coffee](https://buymeacoffee.com/yvgude)
 
 ## License
 

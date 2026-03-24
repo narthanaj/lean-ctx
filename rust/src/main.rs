@@ -70,8 +70,20 @@ async fn main() -> Result<()> {
                 cli::cmd_deps(&rest);
                 return Ok(());
             }
+            "discover" => {
+                cli::cmd_discover(&rest);
+                return Ok(());
+            }
+            "session" => {
+                cli::cmd_session();
+                return Ok(());
+            }
+            "config" => {
+                cli::cmd_config(&rest);
+                return Ok(());
+            }
             "--version" | "-V" => {
-                println!("lean-ctx 1.3.2");
+                println!("lean-ctx 1.4.0");
                 return Ok(());
             }
             "--help" | "-h" => {
@@ -94,7 +106,7 @@ async fn main() -> Result<()> {
         .with_writer(std::io::stderr)
         .init();
 
-    tracing::info!("lean-ctx v1.3.2 MCP server starting");
+    tracing::info!("lean-ctx v1.4.0 MCP server starting");
 
     let server = tools::create_server();
     let transport = rmcp::transport::io::stdio();
@@ -120,7 +132,9 @@ fn shell_quote(s: &str) -> String {
 
 fn print_help() {
     println!(
-        "lean-ctx 1.3.2 — Hybrid Context Optimizer with TDD (Shell Hook + MCP Server)
+        "lean-ctx 1.4.0 — Hybrid Context Optimizer with TDD (Shell Hook + MCP Server)
+
+50+ compression patterns | 8 MCP tools | Token Dense Dialect
 
 USAGE:
     lean-ctx                       Start MCP server (stdio)
@@ -138,6 +152,24 @@ COMMANDS:
     find <pattern> [path]          Find files with compressed output
     ls [path]                      Directory listing with compression
     deps [path]                    Show project dependencies
+    discover                       Find uncompressed commands in shell history
+    session                        Show adoption statistics
+    config                         Show/edit configuration (~/.lean-ctx/config.toml)
+
+SHELL HOOK PATTERNS (50+):
+    git       status, log, diff, add, commit, push, pull, fetch, clone,
+              branch, checkout, switch, merge, stash, tag, reset, remote
+    docker    build, ps, images, logs, compose, exec, network
+    npm/pnpm  install, test, run, list, outdated, audit
+    cargo     build, test, check, clippy
+    gh        pr list/view/create, issue list/view, run list/view
+    kubectl   get pods/services/deployments, logs, describe, apply
+    python    pip install/list/outdated, ruff check/format
+    linters   eslint, biome, prettier, golangci-lint
+    builds    tsc, next build, vite build
+    tests     jest, pytest, go test, playwright, rspec
+    utils     curl, grep/rg, find, ls, wget, env
+    data      JSON schema extraction, log deduplication
 
 READ MODES:
     full (default)                 Full content
@@ -145,6 +177,7 @@ READ MODES:
     signatures                     Function/class signatures only
     aggressive                     Syntax-stripped content
     entropy                        Shannon entropy filtered
+    diff                           Changed lines only
 
 OPTIONS:
     --version, -V                  Show version
@@ -152,13 +185,18 @@ OPTIONS:
 
 EXAMPLES:
     lean-ctx -c \"git status\"       Compressed git output
+    lean-ctx -c \"kubectl get pods\" Compressed k8s output
+    lean-ctx -c \"gh pr list\"       Compressed GitHub CLI output
     lean-ctx gain                  Show savings statistics
     lean-ctx dashboard             Open web dashboard at localhost:3333
+    lean-ctx discover              Find missed savings in shell history
     lean-ctx init --global         Install shell aliases
     lean-ctx read src/main.rs -m map
     lean-ctx grep \"pub fn\" src/
-    lean-ctx find \"*.rs\" src/
     lean-ctx deps .
+
+WEBSITE: https://leanctx.com
+GITHUB:  https://github.com/yvgude/lean-ctx
 "
     );
 }

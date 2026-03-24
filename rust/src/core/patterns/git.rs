@@ -3,12 +3,36 @@ use std::sync::OnceLock;
 
 static STATUS_BRANCH_RE: OnceLock<Regex> = OnceLock::new();
 static AHEAD_RE: OnceLock<Regex> = OnceLock::new();
+static COMMIT_HASH_RE: OnceLock<Regex> = OnceLock::new();
+static INSERTIONS_RE: OnceLock<Regex> = OnceLock::new();
+static DELETIONS_RE: OnceLock<Regex> = OnceLock::new();
+static FILES_CHANGED_RE: OnceLock<Regex> = OnceLock::new();
+static CLONE_OBJECTS_RE: OnceLock<Regex> = OnceLock::new();
+static STASH_RE: OnceLock<Regex> = OnceLock::new();
 
 fn status_branch_re() -> &'static Regex {
     STATUS_BRANCH_RE.get_or_init(|| Regex::new(r"On branch (\S+)").unwrap())
 }
 fn ahead_re() -> &'static Regex {
     AHEAD_RE.get_or_init(|| Regex::new(r"ahead of .+ by (\d+) commit").unwrap())
+}
+fn commit_hash_re() -> &'static Regex {
+    COMMIT_HASH_RE.get_or_init(|| Regex::new(r"\[(\w+)\s+([a-f0-9]+)\]").unwrap())
+}
+fn insertions_re() -> &'static Regex {
+    INSERTIONS_RE.get_or_init(|| Regex::new(r"(\d+) insertions?\(\+\)").unwrap())
+}
+fn deletions_re() -> &'static Regex {
+    DELETIONS_RE.get_or_init(|| Regex::new(r"(\d+) deletions?\(-\)").unwrap())
+}
+fn files_changed_re() -> &'static Regex {
+    FILES_CHANGED_RE.get_or_init(|| Regex::new(r"(\d+) files? changed").unwrap())
+}
+fn clone_objects_re() -> &'static Regex {
+    CLONE_OBJECTS_RE.get_or_init(|| Regex::new(r"Receiving objects:.*?(\d+)").unwrap())
+}
+fn stash_re() -> &'static Regex {
+    STASH_RE.get_or_init(|| Regex::new(r"stash@\{(\d+)\}:\s*(.+)").unwrap())
 }
 
 pub fn compress(command: &str, output: &str) -> Option<String> {
@@ -18,8 +42,53 @@ pub fn compress(command: &str, output: &str) -> Option<String> {
     if command.contains("log") {
         return Some(compress_log(output));
     }
-    if command.contains("diff") {
+    if command.contains("diff") && !command.contains("difftool") {
         return Some(compress_diff(output));
+    }
+    if command.contains("add") && !command.contains("remote add") {
+        return Some(compress_add(output));
+    }
+    if command.contains("commit") {
+        return Some(compress_commit(output));
+    }
+    if command.contains("push") {
+        return Some(compress_push(output));
+    }
+    if command.contains("pull") {
+        return Some(compress_pull(output));
+    }
+    if command.contains("fetch") {
+        return Some(compress_fetch(output));
+    }
+    if command.contains("clone") {
+        return Some(compress_clone(output));
+    }
+    if command.contains("branch") {
+        return Some(compress_branch(output));
+    }
+    if command.contains("checkout") || command.contains("switch") {
+        return Some(compress_checkout(output));
+    }
+    if command.contains("merge") {
+        return Some(compress_merge(output));
+    }
+    if command.contains("stash") {
+        return Some(compress_stash(output));
+    }
+    if command.contains("tag") {
+        return Some(compress_tag(output));
+    }
+    if command.contains("reset") {
+        return Some(compress_reset(output));
+    }
+    if command.contains("remote") {
+        return Some(compress_remote(output));
+    }
+    if command.contains("blame") {
+        return Some(compress_blame(output));
+    }
+    if command.contains("cherry-pick") {
+        return Some(compress_cherry_pick(output));
     }
     None
 }
@@ -94,6 +163,10 @@ fn compress_status(output: &str) -> String {
         parts.push(format!("untracked: {}", untracked.join(" ")));
     }
 
+    if output.contains("nothing to commit") && parts.len() == 1 {
+        parts.push("clean".to_string());
+    }
+
     parts.join("\n")
 }
 
@@ -161,4 +234,327 @@ fn compress_diff(output: &str) -> String {
     }
 
     files.join("\n")
+}
+
+fn compress_add(output: &str) -> String {
+    let trimmed = output.trim();
+    if trimmed.is_empty() {
+        return "ok".to_string();
+    }
+    let lines: Vec<&str> = trimmed.lines().collect();
+    if lines.len() <= 3 {
+        return trimmed.to_string();
+    }
+    format!("ok (+{} files)", lines.len())
+}
+
+fn compress_commit(output: &str) -> String {
+    if let Some(caps) = commit_hash_re().captures(output) {
+        let branch = &caps[1];
+        let hash = &caps[2];
+        let msg = output.lines().next().unwrap_or("").trim();
+        let stats = extract_change_stats(output);
+        return if stats.is_empty() {
+            format!("{hash} ({branch}) {msg}")
+        } else {
+            format!("{hash} ({branch}) {msg} {stats}")
+        };
+    }
+    let trimmed = output.trim();
+    if trimmed.is_empty() {
+        return "ok".to_string();
+    }
+    compact_lines(trimmed, 3)
+}
+
+fn compress_push(output: &str) -> String {
+    let trimmed = output.trim();
+    if trimmed.is_empty() {
+        return "ok".to_string();
+    }
+
+    for line in trimmed.lines() {
+        let l = line.trim();
+        if l.contains("->") {
+            return format!("ok {l}");
+        }
+        if l.contains("Everything up-to-date") {
+            return "ok (up-to-date)".to_string();
+        }
+        if l.contains("rejected") {
+            return format!("REJECTED: {l}");
+        }
+    }
+
+    compact_lines(trimmed, 3)
+}
+
+fn compress_pull(output: &str) -> String {
+    let trimmed = output.trim();
+    if trimmed.contains("Already up to date") {
+        return "ok (up-to-date)".to_string();
+    }
+
+    let stats = extract_change_stats(trimmed);
+    if !stats.is_empty() {
+        return format!("ok {stats}");
+    }
+
+    compact_lines(trimmed, 5)
+}
+
+fn compress_fetch(output: &str) -> String {
+    let trimmed = output.trim();
+    if trimmed.is_empty() {
+        return "ok".to_string();
+    }
+
+    let mut new_branches = Vec::new();
+    for line in trimmed.lines() {
+        let l = line.trim();
+        if l.contains("[new branch]") || l.contains("[new tag]") {
+            if let Some(name) = l.split("->").last() {
+                new_branches.push(name.trim().to_string());
+            }
+        }
+    }
+
+    if new_branches.is_empty() {
+        return "ok (fetched)".to_string();
+    }
+    format!("ok (new: {})", new_branches.join(", "))
+}
+
+fn compress_clone(output: &str) -> String {
+    let mut objects = 0u32;
+    for line in output.lines() {
+        if let Some(caps) = clone_objects_re().captures(line) {
+            objects = caps[1].parse().unwrap_or(0);
+        }
+    }
+
+    let into = output
+        .lines()
+        .find(|l| l.contains("Cloning into"))
+        .and_then(|l| l.split('\'').nth(1))
+        .unwrap_or("repo");
+
+    if objects > 0 {
+        format!("cloned '{into}' ({objects} objects)")
+    } else {
+        format!("cloned '{into}'")
+    }
+}
+
+fn compress_branch(output: &str) -> String {
+    let trimmed = output.trim();
+    if trimmed.is_empty() {
+        return "ok".to_string();
+    }
+
+    let branches: Vec<String> = trimmed
+        .lines()
+        .filter_map(|line| {
+            let l = line.trim();
+            if l.is_empty() {
+                return None;
+            }
+            if l.starts_with('*') {
+                Some(format!("*{}", l[1..].trim()))
+            } else {
+                Some(l.to_string())
+            }
+        })
+        .collect();
+
+    branches.join(", ")
+}
+
+fn compress_checkout(output: &str) -> String {
+    let trimmed = output.trim();
+    if trimmed.is_empty() {
+        return "ok".to_string();
+    }
+
+    for line in trimmed.lines() {
+        let l = line.trim();
+        if l.starts_with("Switched to") || l.starts_with("Already on") {
+            let branch = l.split('\'').nth(1).unwrap_or(l);
+            return format!("→ {branch}");
+        }
+        if l.starts_with("Your branch is up to date") {
+            continue;
+        }
+    }
+
+    compact_lines(trimmed, 3)
+}
+
+fn compress_merge(output: &str) -> String {
+    let trimmed = output.trim();
+    if trimmed.contains("Already up to date") {
+        return "ok (up-to-date)".to_string();
+    }
+    if trimmed.contains("CONFLICT") {
+        let conflicts: Vec<&str> = trimmed
+            .lines()
+            .filter(|l| l.contains("CONFLICT"))
+            .collect();
+        return format!("CONFLICT ({} files):\n{}", conflicts.len(), conflicts.join("\n"));
+    }
+
+    let stats = extract_change_stats(trimmed);
+    if !stats.is_empty() {
+        return format!("merged {stats}");
+    }
+    compact_lines(trimmed, 3)
+}
+
+fn compress_stash(output: &str) -> String {
+    let trimmed = output.trim();
+    if trimmed.is_empty() {
+        return "ok".to_string();
+    }
+
+    if trimmed.starts_with("Saved working directory") {
+        return "stashed".to_string();
+    }
+    if trimmed.starts_with("Dropped") {
+        return "dropped".to_string();
+    }
+
+    let stashes: Vec<String> = trimmed
+        .lines()
+        .filter_map(|line| {
+            if let Some(caps) = stash_re().captures(line) {
+                Some(format!("@{}: {}", &caps[1], &caps[2]))
+            } else {
+                None
+            }
+        })
+        .collect();
+
+    if stashes.is_empty() {
+        return compact_lines(trimmed, 3);
+    }
+    stashes.join("\n")
+}
+
+fn compress_tag(output: &str) -> String {
+    let trimmed = output.trim();
+    if trimmed.is_empty() {
+        return "ok".to_string();
+    }
+
+    let tags: Vec<&str> = trimmed.lines().filter(|l| !l.trim().is_empty()).collect();
+    if tags.len() <= 10 {
+        return tags.join(", ");
+    }
+    format!("{} (... {} total)", tags[..5].join(", "), tags.len())
+}
+
+fn compress_reset(output: &str) -> String {
+    let trimmed = output.trim();
+    if trimmed.is_empty() {
+        return "ok".to_string();
+    }
+
+    let mut unstaged: Vec<&str> = Vec::new();
+    for line in trimmed.lines() {
+        let l = line.trim();
+        if l.starts_with("Unstaged changes after reset:") {
+            continue;
+        }
+        if l.starts_with('M') || l.starts_with('D') || l.starts_with('A') {
+            unstaged.push(l);
+        }
+    }
+
+    if unstaged.is_empty() {
+        return compact_lines(trimmed, 3);
+    }
+    format!("reset ok ({} files unstaged)", unstaged.len())
+}
+
+fn compress_remote(output: &str) -> String {
+    let trimmed = output.trim();
+    if trimmed.is_empty() {
+        return "ok".to_string();
+    }
+
+    let mut remotes = std::collections::HashMap::new();
+    for line in trimmed.lines() {
+        let parts: Vec<&str> = line.split_whitespace().collect();
+        if parts.len() >= 2 {
+            remotes.entry(parts[0].to_string()).or_insert_with(|| parts[1].to_string());
+        }
+    }
+
+    if remotes.is_empty() {
+        return trimmed.to_string();
+    }
+
+    remotes
+        .iter()
+        .map(|(name, url)| format!("{name}: {url}"))
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+fn compress_blame(output: &str) -> String {
+    let lines: Vec<&str> = output.lines().collect();
+    if lines.len() <= 20 {
+        return output.to_string();
+    }
+
+    let unique_authors: std::collections::HashSet<&str> = lines
+        .iter()
+        .filter_map(|l| l.split('(').nth(1)?.split_whitespace().next())
+        .collect();
+
+    format!("{} lines, {} authors", lines.len(), unique_authors.len())
+}
+
+fn compress_cherry_pick(output: &str) -> String {
+    let trimmed = output.trim();
+    if trimmed.is_empty() {
+        return "ok".to_string();
+    }
+    if trimmed.contains("CONFLICT") {
+        return "CONFLICT (cherry-pick)".to_string();
+    }
+    let stats = extract_change_stats(trimmed);
+    if !stats.is_empty() {
+        return format!("ok {stats}");
+    }
+    compact_lines(trimmed, 3)
+}
+
+fn extract_change_stats(output: &str) -> String {
+    let files = files_changed_re()
+        .captures(output)
+        .and_then(|c| c[1].parse::<u32>().ok())
+        .unwrap_or(0);
+    let ins = insertions_re()
+        .captures(output)
+        .and_then(|c| c[1].parse::<u32>().ok())
+        .unwrap_or(0);
+    let del = deletions_re()
+        .captures(output)
+        .and_then(|c| c[1].parse::<u32>().ok())
+        .unwrap_or(0);
+
+    if files > 0 || ins > 0 || del > 0 {
+        format!("{files} files, +{ins}/-{del}")
+    } else {
+        String::new()
+    }
+}
+
+fn compact_lines(text: &str, max: usize) -> String {
+    let lines: Vec<&str> = text.lines().filter(|l| !l.trim().is_empty()).collect();
+    if lines.len() <= max {
+        return lines.join("\n");
+    }
+    format!("{}\n... ({} more lines)", lines[..max].join("\n"), lines.len() - max)
 }
