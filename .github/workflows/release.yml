@@ -59,19 +59,13 @@ jobs:
         run: |
           Compress-Archive -Path "rust/target/${{ matrix.target }}/release/lean-ctx.exe" -DestinationPath "lean-ctx-${{ matrix.target }}.zip"
 
-      - name: Upload artifact (Unix)
-        if: runner.os != 'Windows'
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: lean-ctx-${{ matrix.target }}
-          path: lean-ctx-${{ matrix.target }}.tar.gz
-
-      - name: Upload artifact (Windows)
-        if: runner.os == 'Windows'
-        uses: actions/upload-artifact@v4
-        with:
-          name: lean-ctx-${{ matrix.target }}
-          path: lean-ctx-${{ matrix.target }}.zip
+          path: |
+            lean-ctx-${{ matrix.target }}.tar.gz
+            lean-ctx-${{ matrix.target }}.zip
 
   release:
     name: Create Release
@@ -83,7 +77,7 @@ jobs:
           merge-multiple: true
 
       - name: Generate checksums
-        run: sha256sum lean-ctx-*.tar.gz lean-ctx-*.zip 2>/dev/null > SHA256SUMS || true
+        run: sha256sum lean-ctx-*.tar.gz lean-ctx-*.zip > SHA256SUMS
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
