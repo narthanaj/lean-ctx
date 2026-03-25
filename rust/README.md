@@ -1,6 +1,6 @@
 # lean-ctx
 
-**Hybrid Context Optimizer with Token Dense Dialect (TDD). Shell Hook + MCP Server. tree-sitter AST parsing for 14 languages. Single Rust binary.**
+**Context Intelligence Engine with Token Dense Dialect (TDD). Shell Hook + MCP Server. 19 MCP tools, 90+ shell patterns, tree-sitter AST parsing for 14 languages. Single Rust binary.**
 
 [![Crates.io](https://img.shields.io/crates/v/lean-ctx)](https://crates.io/crates/lean-ctx)
 [![Downloads](https://img.shields.io/crates/d/lean-ctx)](https://crates.io/crates/lean-ctx)
@@ -8,14 +8,15 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Discord](https://img.shields.io/badge/Discord-Join-5865F2?logo=discord&logoColor=white)](https://discord.gg/pTHkG9Hew9)
 
-[Website](https://leanctx.com) · [Install](#installation) · [Quick Start](#quick-start) · [CLI Reference](#cli-commands) · [MCP Tools](#10-mcp-tools) · [vs RTK](#lean-ctx-vs-rtk) · [Discord](https://discord.gg/pTHkG9Hew9)
+[Website](https://leanctx.com) · [Install](#installation) · [Quick Start](#quick-start) · [CLI Reference](#cli-commands) · [MCP Tools](#19-mcp-tools) · [Changelog](CHANGELOG.md) · [vs RTK](#lean-ctx-vs-rtk) · [Discord](https://discord.gg/pTHkG9Hew9)
 
 ---
 
 lean-ctx reduces LLM token consumption by **up to 99%** through two complementary strategies in a single binary:
 
-1. **Shell Hook** — Transparently compresses CLI output before it reaches the LLM. Works without LLM cooperation.
-2. **MCP Server** — 10 tools for cached file reads, dependency maps, cache management, entropy analysis, and session metrics. Works with Cursor, GitHub Copilot, Claude Code, Windsurf, OpenAI Codex, Google Antigravity, OpenCode, and any MCP-compatible editor. Shell hook also benefits OpenClaw via transparent compression.
+1. **Shell Hook** — Transparently compresses CLI output (90+ patterns) before it reaches the LLM. Works without LLM cooperation.
+2. **MCP Server** — 19 tools for cached file reads, adaptive mode selection, incremental deltas, dependency maps, intent detection, cross-file dedup, project graph, and session metrics. Works with Cursor, GitHub Copilot, Claude Code, Windsurf, OpenAI Codex, Google Antigravity, OpenCode, and any MCP-compatible editor.
+3. **AI Tool Hooks** — One-command integration for Claude Code, Cursor, Gemini CLI, Codex, Windsurf, and Cline via `lean-ctx init --agent <tool>`.
 
 ## Token Savings (Typical Cursor/Claude Code Session)
 
@@ -74,7 +75,7 @@ cp target/release/lean-ctx ~/.local/bin/
 ### Verify Installation
 
 ```bash
-lean-ctx --version   # Should show "lean-ctx 1.7.0"
+lean-ctx --version   # Should show "lean-ctx 1.9.0"
 lean-ctx gain        # Should show token savings stats
 ```
 
@@ -176,6 +177,12 @@ lean-ctx deps .                          # Project dependencies summary
 
 ```bash
 lean-ctx init --global         # Install 23 shell aliases (.zshrc/.bashrc/.config/fish)
+lean-ctx init --agent claude   # Install Claude Code PreToolUse hook
+lean-ctx init --agent cursor   # Install Cursor hooks.json
+lean-ctx init --agent gemini   # Install Gemini CLI BeforeTool hook
+lean-ctx init --agent codex    # Install Codex AGENTS.md
+lean-ctx init --agent windsurf # Install .windsurfrules
+lean-ctx init --agent cline    # Install .clinerules
 lean-ctx gain                  # Persistent token savings (CLI)
 lean-ctx gain --graph          # ASCII chart of last 30 days
 lean-ctx gain --daily          # Day-by-day breakdown
@@ -197,9 +204,9 @@ lean-ctx --help                # Full help
 lean-ctx                       # Start MCP server (stdio) — used by editors
 ```
 
-## Shell Hook Patterns (75+)
+## Shell Hook Patterns (90+)
 
-The shell hook applies pattern-based compression for 75+ commands across 19 categories:
+The shell hook applies pattern-based compression for 90+ commands across 34 categories:
 
 | Category | Commands | Savings |
 |---|---|---|
@@ -220,6 +227,20 @@ The shell hook applies pattern-based compression for 75+ commands across 19 cate
 | **.NET** | `dotnet` build, test, restore, run, publish, pack | -60-85% |
 | **Flutter / Dart** | flutter pub, analyze, test, build; dart pub, analyze, test | -60-85% |
 | **Poetry / uv** | install, sync, lock, run, add, remove; uv pip/sync/run | -60-85% |
+| **AWS** (7) | s3, ec2, lambda, cloudformation, ecs, logs, sts | -60-80% |
+| **Databases** (2) | psql, mysql/mariadb | -50-80% |
+| **Prisma** (6) | generate, migrate, db push/pull, format, validate | -70-85% |
+| **Helm** (5) | list, install, upgrade, status, template | -60-80% |
+| **Bun** (3) | test, install, build | -60-85% |
+| **Deno** (5) | test, lint, check, fmt, task | -60-85% |
+| **Swift** (3) | test, build, package resolve | -60-80% |
+| **Zig** (2) | test, build | -60-80% |
+| **CMake** (3) | configure, build, ctest | -60-80% |
+| **Ansible** (2) | playbook recap, task summary | -60-80% |
+| **Composer** (3) | install, update, outdated | -60-80% |
+| **Mix** (5) | test, deps, compile, format, credo/dialyzer | -60-80% |
+| **Bazel** (3) | test, build, query | -60-80% |
+| **systemd** (2) | systemctl, journalctl | -50-80% |
 | **Utils** (5) | curl, grep/rg, find, ls, wget | -50-89% |
 | **Data** (3) | env (filtered), JSON schema extraction, log deduplication | -50-80% |
 
@@ -312,25 +333,46 @@ $ lean-ctx gain
   03-23    101 cmds      9.4K saved   46.0%
   03-24    419 cmds      1.7M saved   77.0%
 
-  lean-ctx v1.7.0  |  leanctx.com  |  lean-ctx dashboard
+  lean-ctx v1.9.0  |  leanctx.com  |  lean-ctx dashboard
 ```
 
-## 10 MCP Tools
+## 19 MCP Tools
 
-When configured as an MCP server, lean-ctx provides 10 tools that replace or augment your editor's built-in tools:
+When configured as an MCP server, lean-ctx provides 19 tools that replace or augment your editor's built-in tools:
 
-| Tool | Replaces | Savings |
+### Core Tools
+
+| Tool | Purpose | Savings |
 |---|---|---|
-| `ctx_read` | File reads — modes: full, map, signatures, diff, aggressive, entropy, `lines:N-M` (comma-separated ranges). Supports `fresh=true` to bypass cache. | 74-99% |
-| `ctx_multi_read` | Multiple file reads in one round trip (same modes per file) | 74-99% |
+| `ctx_read` | File reads — 6 modes + `lines:N-M`. Supports `fresh=true` to bypass cache. | 74-99% |
+| `ctx_multi_read` | Multiple file reads in one round trip | 74-99% |
 | `ctx_tree` | Directory listings (ls, find, Glob) | 34-60% |
-| `ctx_shell` | Shell commands | 60-90% |
+| `ctx_shell` | Shell commands with 90+ compression patterns | 60-90% |
 | `ctx_search` | Code search (Grep) | 50-80% |
 | `ctx_compress` | Context checkpoint for long conversations | 90-99% |
-| `ctx_benchmark` | Compare all compression strategies with tiktoken counts | — |
-| `ctx_metrics` | Session statistics with USD cost estimates ($2.50/1M) | — |
-| `ctx_analyze` | Shannon entropy analysis + mode recommendation | — |
-| `ctx_cache` | Cache management: status, clear, invalidate. Use `clear` when spawned as a subagent. | — |
+
+### Intelligence Tools (new in v1.9.0)
+
+| Tool | Purpose |
+|---|---|
+| `ctx_smart_read` | Adaptive mode selection — automatically picks full/map/signatures/diff based on file type, size, and cache state |
+| `ctx_delta` | Incremental file updates — only sends changed hunks via Myers diff |
+| `ctx_dedup` | Cross-file deduplication — finds shared imports and boilerplate across cached files |
+| `ctx_fill` | Priority-based context filling — maximizes information within a token budget |
+| `ctx_intent` | Semantic intent detection — classifies queries and auto-loads relevant files |
+| `ctx_response` | Response compression — removes filler content, applies TDD shortcuts |
+| `ctx_context` | Multi-turn session overview — tracks what the LLM already knows |
+| `ctx_graph` | Project intelligence graph — dependency analysis and related file discovery |
+| `ctx_discover` | Shell history analysis — finds missed compression opportunities |
+
+### Analysis Tools
+
+| Tool | Purpose |
+|---|---|
+| `ctx_benchmark` | Compare all compression strategies with tiktoken counts |
+| `ctx_metrics` | Session statistics with USD cost estimates ($2.50/1M) |
+| `ctx_analyze` | Shannon entropy analysis + mode recommendation |
+| `ctx_cache` | Cache management: status, clear, invalidate |
 
 ### ctx_read Modes
 
@@ -557,7 +599,7 @@ Opens `http://localhost:3333` with:
 |---|---|---|
 | **Architecture** | Shell hook only | **Hybrid: Shell hook + MCP server** |
 | **Language** | Rust | Rust |
-| **CLI compression** | ~50 commands | **75+ patterns** (git, npm, cargo, docker, gh, kubectl, pip, ruff, eslint, prettier, tsc, go, terraform, make, maven, gradle, dotnet, flutter, dart, poetry, uv, playwright, rubocop, bundle, vitest, curl, wget, JSON, logs...) |
+| **CLI compression** | ~50 commands | **90+ patterns** (git, npm, cargo, docker, gh, kubectl, pip, ruff, eslint, prettier, tsc, go, terraform, make, maven, gradle, dotnet, flutter, dart, poetry, uv, playwright, rubocop, bundle, vitest, aws, psql, mysql, prisma, helm, bun, deno, swift, zig, cmake, ansible, composer, mix, bazel, systemd, curl, wget, JSON, logs...) |
 | **File reading** | `rtk read` (signatures mode) | **Modes: full (cached), map, signatures, diff, aggressive, entropy, lines:N-M** |
 | **File caching** | ✗ | ✓ MD5 session cache (re-reads = ~13 tokens) |
 | **Signature engine** | Line-by-line regex | **tree-sitter AST (14 languages)** |

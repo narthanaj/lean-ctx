@@ -17,7 +17,7 @@ impl ServerHandler for LeanCtxServer {
         let instructions = build_instructions(self.crp_mode);
 
         InitializeResult::new(capabilities)
-            .with_server_info(Implementation::new("lean-ctx", "1.8.2"))
+            .with_server_info(Implementation::new("lean-ctx", "1.9.0"))
             .with_instructions(instructions)
     }
 
@@ -176,6 +176,134 @@ impl ServerHandler for LeanCtxServer {
                             "required": ["action"]
                         }),
                     ),
+                    tool_def(
+                        "ctx_discover",
+                        "Analyze shell history to find commands that could benefit from lean-ctx compression. \
+                        Shows missed savings opportunities with estimated token/cost savings.",
+                        json!({
+                            "type": "object",
+                            "properties": {
+                                "limit": {
+                                    "type": "integer",
+                                    "description": "Max number of command types to show (default: 15)"
+                                }
+                            }
+                        }),
+                    ),
+                    tool_def(
+                        "ctx_smart_read",
+                        "Adaptive file read that automatically selects the optimal compression mode based on \
+                        file size, type, cache state, and token budget. Returns [auto:mode] prefix showing which mode was selected.",
+                        json!({
+                            "type": "object",
+                            "properties": {
+                                "path": { "type": "string", "description": "Absolute file path to read" }
+                            },
+                            "required": ["path"]
+                        }),
+                    ),
+                    tool_def(
+                        "ctx_delta",
+                        "Incremental file update using Myers diff. Only sends changed lines (hunks with context) \
+                        instead of full file content. Automatically updates the cache after computing the delta.",
+                        json!({
+                            "type": "object",
+                            "properties": {
+                                "path": { "type": "string", "description": "Absolute file path" }
+                            },
+                            "required": ["path"]
+                        }),
+                    ),
+                    tool_def(
+                        "ctx_dedup",
+                        "Cross-file deduplication analysis. Finds shared imports, boilerplate blocks, \
+                        and repeated patterns across all cached files. Reports potential token savings.",
+                        json!({
+                            "type": "object",
+                            "properties": {}
+                        }),
+                    ),
+                    tool_def(
+                        "ctx_fill",
+                        "Priority-based context filling with a token budget. Given a list of files and a budget, \
+                        automatically selects the best compression mode per file to maximize information within the budget. \
+                        Higher-relevance files get more tokens (full mode); lower-relevance files get compressed (signatures).",
+                        json!({
+                            "type": "object",
+                            "properties": {
+                                "paths": {
+                                    "type": "array",
+                                    "items": { "type": "string" },
+                                    "description": "File paths to consider"
+                                },
+                                "budget": {
+                                    "type": "integer",
+                                    "description": "Maximum token budget to fill"
+                                }
+                            },
+                            "required": ["paths", "budget"]
+                        }),
+                    ),
+                    tool_def(
+                        "ctx_intent",
+                        "Semantic intent detection. Analyzes a natural language query to determine intent \
+                        (fix bug, add feature, refactor, understand, test, config, deploy) and automatically \
+                        selects and reads relevant files in the optimal compression mode.",
+                        json!({
+                            "type": "object",
+                            "properties": {
+                                "query": { "type": "string", "description": "Natural language description of the task" },
+                                "project_root": { "type": "string", "description": "Project root directory (default: .)" }
+                            },
+                            "required": ["query"]
+                        }),
+                    ),
+                    tool_def(
+                        "ctx_response",
+                        "Bi-directional response compression. Compresses LLM response text by removing filler \
+                        content and applying TDD shortcuts. Use to verify compression quality of responses.",
+                        json!({
+                            "type": "object",
+                            "properties": {
+                                "text": { "type": "string", "description": "Response text to compress" }
+                            },
+                            "required": ["text"]
+                        }),
+                    ),
+                    tool_def(
+                        "ctx_context",
+                        "Multi-turn context manager. Shows what files the LLM has already seen, \
+                        which are cached, and provides a session overview to avoid redundant re-reads.",
+                        json!({
+                            "type": "object",
+                            "properties": {}
+                        }),
+                    ),
+                    tool_def(
+                        "ctx_graph",
+                        "Build and query a project intelligence graph. Analyzes file dependencies, \
+                        imports/exports, and call hierarchies to understand project structure. \
+                        Actions: 'build' (scan project), 'related' (find files related to a given file).",
+                        json!({
+                            "type": "object",
+                            "properties": {
+                                "action": {
+                                    "type": "string",
+                                    "enum": ["build", "related"],
+                                    "description": "Graph operation"
+                                },
+                                "path": {
+                                    "type": "string",
+                                    "description": "File path (required for 'related' action)"
+                                },
+                                "project_root": {
+                                    "type": "string",
+                                    "description": "Project root directory (default: .)"
+                                }
+                            },
+                            "required": ["action"]
+                        }),
+                    ),
                 ],
                 ..Default::default()
             })
@@ -295,6 +423,87 @@ impl ServerHandler for LeanCtxServer {
                     self.record_call("ctx_analyze", 0, 0, None).await;
                     result
                 }
+                "ctx_discover" => {
+                    let limit = get_int(args, "limit").unwrap_or(15) as usize;
+                    let history = crate::cli::load_shell_history_pub();
+                    let result = crate::tools::ctx_discover::discover_from_history(&history, limit);
+                    self.record_call("ctx_discover", 0, 0, None).await;
+                    result
+                }
+                "ctx_smart_read" => {
+                    let path = get_str(args, "path")
+                        .ok_or_else(|| ErrorData::invalid_params("path is required", None))?;
+                    let mut cache = self.cache.write().await;
+                    let output = crate::tools::ctx_smart_read::handle(&mut cache, &path, self.crp_mode);
+                    let original = cache.get(&path).map_or(0, |e| e.original_tokens);
+                    let tokens = crate::core::tokens::count_tokens(&output);
+                    drop(cache);
+                    self.record_call("ctx_smart_read", original, original.saturating_sub(tokens), Some("auto".to_string())).await;
+                    output
+                }
+                "ctx_delta" => {
+                    let path = get_str(args, "path")
+                        .ok_or_else(|| ErrorData::invalid_params("path is required", None))?;
+                    let mut cache = self.cache.write().await;
+                    let output = crate::tools::ctx_delta::handle(&mut cache, &path);
+                    let original = cache.get(&path).map_or(0, |e| e.original_tokens);
+                    let tokens = crate::core::tokens::count_tokens(&output);
+                    drop(cache);
+                    self.record_call("ctx_delta", original, original.saturating_sub(tokens), Some("delta".to_string())).await;
+                    output
+                }
+                "ctx_dedup" => {
+                    let cache = self.cache.read().await;
+                    let result = crate::tools::ctx_dedup::handle(&cache);
+                    drop(cache);
+                    self.record_call("ctx_dedup", 0, 0, None).await;
+                    result
+                }
+                "ctx_fill" => {
+                    let paths = get_str_array(args, "paths")
+                        .ok_or_else(|| ErrorData::invalid_params("paths array is required", None))?;
+                    let budget = get_int(args, "budget")
+                        .ok_or_else(|| ErrorData::invalid_params("budget is required", None))? as usize;
+                    let mut cache = self.cache.write().await;
+                    let output = crate::tools::ctx_fill::handle(&mut cache, &paths, budget, self.crp_mode);
+                    drop(cache);
+                    self.record_call("ctx_fill", 0, 0, Some(format!("budget:{budget}"))).await;
+                    output
+                }
+                "ctx_intent" => {
+                    let query = get_str(args, "query")
+                        .ok_or_else(|| ErrorData::invalid_params("query is required", None))?;
+                    let root = get_str(args, "project_root").unwrap_or_else(|| ".".to_string());
+                    let mut cache = self.cache.write().await;
+                    let output = crate::tools::ctx_intent::handle(&mut cache, &query, &root, self.crp_mode);
+                    drop(cache);
+                    self.record_call("ctx_intent", 0, 0, Some("semantic".to_string())).await;
+                    output
+                }
+                "ctx_response" => {
+                    let text = get_str(args, "text")
+                        .ok_or_else(|| ErrorData::invalid_params("text is required", None))?;
+                    let output = crate::tools::ctx_response::handle(&text, self.crp_mode);
+                    self.record_call("ctx_response", 0, 0, None).await;
+                    output
+                }
+                "ctx_context" => {
+                    let cache = self.cache.read().await;
+                    let turn = self.call_count.load(std::sync::atomic::Ordering::Relaxed);
+                    let result = crate::tools::ctx_context::handle_status(&cache, turn, self.crp_mode);
+                    drop(cache);
+                    self.record_call("ctx_context", 0, 0, None).await;
+                    result
+                }
+                "ctx_graph" => {
+                    let action = get_str(args, "action")
+                        .ok_or_else(|| ErrorData::invalid_params("action is required", None))?;
+                    let path = get_str(args, "path");
+                    let root = get_str(args, "project_root").unwrap_or_else(|| ".".to_string());
+                    let result = crate::tools::ctx_graph::handle(&action, path.as_deref(), &root);
+                    self.record_call("ctx_graph", 0, 0, Some(action)).await;
+                    result
+                }
                 "ctx_cache" => {
                     let action = get_str(args, "action")
                         .ok_or_else(|| ErrorData::invalid_params("action is required", None))?;
@@ -346,7 +555,7 @@ impl ServerHandler for LeanCtxServer {
                 }
             };
 
-            let skip_checkpoint = matches!(name.as_ref(), "ctx_compress" | "ctx_metrics" | "ctx_benchmark" | "ctx_analyze" | "ctx_cache");
+            let skip_checkpoint = matches!(name.as_ref(), "ctx_compress" | "ctx_metrics" | "ctx_benchmark" | "ctx_analyze" | "ctx_cache" | "ctx_discover" | "ctx_dedup");
 
             if !skip_checkpoint && self.increment_and_check() {
                 if let Some(checkpoint) = self.auto_checkpoint().await {

@@ -1,12 +1,12 @@
 ---
 name: lean-ctx
-description: Token optimizer — compress shell outputs by 50-99% before they reach the LLM. Reduces context window usage and costs.
+description: Context Intelligence Engine — 19 MCP tools, 90+ shell patterns, tree-sitter AST for 14 languages. Compresses LLM context by up to 99%.
 metadata: {"openclaw": {"requires": {"bins": ["lean-ctx"]}, "install": [{"id": "brew", "kind": "brew", "formula": "lean-ctx", "bins": ["lean-ctx"], "label": "Install LeanCTX (brew tap yvgude/lean-ctx)"}]}}
 ---
 
-# LeanCTX — Token Compression for Shell Commands
+# LeanCTX v1.9.0 — Context Intelligence Engine
 
-LeanCTX is a Rust binary that compresses CLI output by 50-99% using 60+ command-specific patterns and extracts code signatures using tree-sitter AST parsing across 10 languages (TS/JS, Rust, Python, Go, Java, C, C++, Ruby). It provides 9 MCP tools including cache management for subagent safety. It reduces the tokens you consume per shell command, keeping your context window lean and your costs low.
+LeanCTX is a Rust binary that optimizes LLM context through 19 MCP tools, 90+ shell compression patterns, and tree-sitter AST parsing for 14 languages (TS/JS, Rust, Python, Go, Java, C, C++, Ruby, C#, Kotlin, Swift, PHP). It provides adaptive file reading, incremental deltas, intent detection, cross-file deduplication, and a project intelligence graph.
 
 ## When to use lean-ctx
 
@@ -17,24 +17,23 @@ Always prefer `lean-ctx -c <command>` over running commands directly when:
 
 ## Shell commands (use instead of raw exec)
 
-Instead of running commands directly, prefix with `lean-ctx -c`:
-
 ```bash
 lean-ctx -c git status          # Compressed git output
 lean-ctx -c git diff            # Only meaningful diff lines
 lean-ctx -c git log --oneline -10
 lean-ctx -c npm install         # Strips progress bars, noise
-lean-ctx -c npm test
 lean-ctx -c cargo build
 lean-ctx -c cargo test
 lean-ctx -c docker ps
 lean-ctx -c kubectl get pods
+lean-ctx -c aws ec2 describe-instances
+lean-ctx -c helm list
+lean-ctx -c prisma migrate dev
 lean-ctx -c curl -s <url>       # JSON schema extraction
 lean-ctx -c ls -la <dir>        # Grouped directory listing
-lean-ctx -c find . -name "*.ts" # Compact find results
 ```
 
-If the user's shell already has lean-ctx aliases configured (`lean-ctx init --global`), commands like `git status` are automatically compressed. You can verify by checking if the output contains `[lean-ctx: ... tok, ...]` at the end.
+Supported: git, npm, pnpm, yarn, bun, deno, cargo, docker, kubectl, helm, gh, pip, ruff, go, eslint, prettier, tsc, aws, psql, mysql, prisma, swift, zig, cmake, ansible, composer, mix, bazel, systemd, terraform, make, maven, dotnet, flutter, poetry, rubocop, playwright, curl, wget, and more.
 
 ## File reading (compressed modes)
 
@@ -48,15 +47,27 @@ lean-ctx read <file> -m diff            # Only changed lines since last read
 ```
 
 Use `map` mode when you need to understand what a file does without reading every line.
-Use `signatures` mode when you need the API surface of a module (powered by tree-sitter for TS/JS, Rust, Python, Go, Java, C, C++, Ruby).
+Use `signatures` mode when you need the API surface of a module (tree-sitter for 14 languages).
 Use `full` mode only when you will edit the file.
+
+## AI Tool Integration
+
+```bash
+lean-ctx init --global          # Install shell aliases
+lean-ctx init --agent claude    # Claude Code PreToolUse hook
+lean-ctx init --agent cursor    # Cursor hooks.json
+lean-ctx init --agent gemini    # Gemini CLI BeforeTool hook
+lean-ctx init --agent codex     # Codex AGENTS.md
+lean-ctx init --agent windsurf  # .windsurfrules
+lean-ctx init --agent cline     # .clinerules
+```
 
 ## Analytics
 
 ```bash
-lean-ctx gain                   # Show cumulative token savings
-lean-ctx dashboard              # Open web dashboard at localhost:3333
-lean-ctx session                # Show adoption statistics
+lean-ctx gain                   # Visual token savings dashboard
+lean-ctx dashboard              # Web dashboard at localhost:3333
+lean-ctx session                # Adoption statistics
 lean-ctx discover               # Find uncompressed commands in shell history
 ```
 
@@ -67,3 +78,4 @@ lean-ctx discover               # Find uncompressed commands in shell history
 - JSON responses from curl/wget are reduced to schema outlines
 - Build errors are grouped by type with counts
 - Test results show only failures with summary counts
+- Cached re-reads cost only ~13 tokens

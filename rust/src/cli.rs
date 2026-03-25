@@ -72,7 +72,7 @@ pub fn cmd_read(args: &[String]) {
             print_savings(original_tokens, sent);
         }
         "aggressive" => {
-            let compressed = compressor::aggressive_compress(&content);
+            let compressed = compressor::aggressive_compress(&content, Some(ext));
             println!("{short} [{line_count}L]");
             println!("{compressed}");
             let sent = count_tokens(&compressed);
@@ -423,6 +423,17 @@ pub fn cmd_tee(args: &[String]) {
 pub fn cmd_init(args: &[String]) {
     let global = args.iter().any(|a| a == "--global" || a == "-g");
 
+    let agent = args.iter()
+        .position(|a| a == "--agent")
+        .and_then(|i| args.get(i + 1))
+        .map(|s| s.as_str());
+
+    if let Some(agent_name) = agent {
+        crate::hooks::install_agent_hook(agent_name);
+        println!("\nRun 'lean-ctx gain' after using some commands to see your savings.");
+        return;
+    }
+
     let shell_name = std::env::var("SHELL").unwrap_or_default();
     let is_zsh = shell_name.contains("zsh");
     let is_fish = shell_name.contains("fish");
@@ -457,6 +468,8 @@ pub fn cmd_init(args: &[String]) {
 
     println!("\nlean-ctx init complete. (23 aliases installed)");
     println!("Binary: {binary}");
+    println!("\nFor AI tool integration, use: lean-ctx init --agent <tool>");
+    println!("  Supported: claude, cursor, gemini, codex, windsurf, cline, copilot");
     println!("\nRun 'lean-ctx gain' after using some commands to see your savings.");
     println!("Run 'lean-ctx discover' to find missed savings in your shell history.");
 }
@@ -617,6 +630,10 @@ fi
         }
         Err(e) => eprintln!("Error writing {}: {e}", rc_file.display()),
     }
+}
+
+pub fn load_shell_history_pub() -> Vec<String> {
+    load_shell_history()
 }
 
 fn load_shell_history() -> Vec<String> {

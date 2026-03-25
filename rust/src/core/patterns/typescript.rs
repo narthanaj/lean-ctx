@@ -25,7 +25,8 @@ pub fn compress(output: &str) -> Option<String> {
             let code = &caps[3];
             let msg = caps[4].trim();
             let short_msg = if msg.len() > 40 {
-                format!("{}...", &msg[..40])
+                let truncated: String = msg.chars().take(40).collect();
+                format!("{truncated}...")
             } else {
                 msg.to_string()
             };

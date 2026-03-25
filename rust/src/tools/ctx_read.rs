@@ -173,7 +173,7 @@ fn process_mode(
             format!("{output}\n{savings}")
         }
         "aggressive" => {
-            let compressed = compressor::aggressive_compress(content);
+            let compressed = compressor::aggressive_compress(content, Some(ext));
             let header = build_header(file_ref, short, ext, content, line_count, true);
 
             if crp_mode.is_tdd() {

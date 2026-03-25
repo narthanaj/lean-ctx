@@ -25,7 +25,8 @@ pub fn compress(output: &str) -> Option<String> {
             let display_value = if is_sensitive {
                 "***".to_string()
             } else if value.len() > 80 {
-                format!("{}...", &value[..40])
+                let truncated: String = value.chars().take(40).collect();
+                format!("{truncated}...")
             } else {
                 value.to_string()
             };

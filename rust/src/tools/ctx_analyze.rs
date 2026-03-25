@@ -38,7 +38,7 @@ pub fn handle(path: &str, crp_mode: CrpMode) -> String {
         .join("\n");
     let sig_tokens = count_tokens(&sig_output);
 
-    let aggressive = compressor::aggressive_compress(&content);
+    let aggressive = compressor::aggressive_compress(&content, Some(ext));
     let agg_tokens = count_tokens(&aggressive);
 
     let cache_tokens = 13usize;

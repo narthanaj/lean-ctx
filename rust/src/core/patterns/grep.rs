@@ -33,7 +33,8 @@ pub fn compress(output: &str) -> Option<String> {
         for (ln, content) in show {
             let trimmed = content.trim();
             let short_content = if trimmed.len() > 80 {
-                format!("{}…", &trimmed[..79])
+                let truncated: String = trimmed.chars().take(79).collect();
+                format!("{truncated}…")
             } else {
                 trimmed.to_string()
             };

@@ -14,6 +14,15 @@ pub mod ctx_compress;
 pub mod ctx_benchmark;
 pub mod ctx_metrics;
 pub mod ctx_analyze;
+pub mod ctx_discover;
+pub mod ctx_smart_read;
+pub mod ctx_delta;
+pub mod ctx_dedup;
+pub mod ctx_fill;
+pub mod ctx_intent;
+pub mod ctx_response;
+pub mod ctx_context;
+pub mod ctx_graph;
 
 const DEFAULT_CACHE_TTL_SECS: u64 = 300;
 

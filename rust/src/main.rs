@@ -4,6 +4,7 @@ mod cli;
 mod core;
 mod dashboard;
 mod doctor;
+mod hooks;
 mod server;
 mod shell;
 mod tools;
@@ -97,7 +98,7 @@ fn main() {
                 return;
             }
             "--version" | "-V" => {
-                println!("lean-ctx 1.8.2");
+                println!("lean-ctx 1.9.0");
                 return;
             }
             "--help" | "-h" => {
@@ -181,9 +182,9 @@ fn shell_quote(s: &str) -> String {
 
 fn print_help() {
     println!(
-        "lean-ctx 1.8.2 — The Cognitive Filter for AI Engineering
+        "lean-ctx 1.9.0 — The Cognitive Filter for AI Engineering
 
-75+ compression patterns | 10 MCP tools | Token Dense Dialect
+90+ compression patterns | 19 MCP tools | Token Dense Dialect
 
 USAGE:
     lean-ctx                       Start MCP server (stdio)

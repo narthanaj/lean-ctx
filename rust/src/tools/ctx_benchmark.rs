@@ -22,7 +22,7 @@ pub fn handle(path: &str, crp_mode: CrpMode) -> String {
 
     let raw_tokens = count_tokens(&content);
 
-    let aggressive = compressor::aggressive_compress(&content);
+    let aggressive = compressor::aggressive_compress(&content, Some(ext));
     let aggressive_tokens = count_tokens(&aggressive);
 
     let sigs = signatures::extract_signatures(&content, ext);
