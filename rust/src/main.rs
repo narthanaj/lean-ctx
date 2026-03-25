@@ -211,7 +211,7 @@ COMMANDS:
     tee [list|clear|show <file>]   Manage error log files (~/.lean-ctx/tee/)
     doctor                         Run installation and environment diagnostics
 
-SHELL HOOK PATTERNS (75+):
+SHELL HOOK PATTERNS (90+):
     git       status, log, diff, add, commit, push, pull, fetch, clone,
               branch, checkout, switch, merge, stash, tag, reset, remote
     docker    build, ps, images, logs, compose, exec, network

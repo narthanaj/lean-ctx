@@ -23,7 +23,7 @@ LeanCTX solves this with:
 - **Session Caching** — Re-reads cost 13 tokens instead of thousands.
 - **Token Shorthand (TDD)** — Replace verbose grammar with logical symbols to free up thinking tokens.
 - **Entropy Filtering** — Shannon entropy analysis removes lines that carry no unique information.
-- **75+ CLI Patterns** — Pattern-matched compression for every common dev tool.
+- **90+ CLI Patterns** — Pattern-matched compression for every common dev tool.
 
 ### 2. Semantic Router (Model Selection)
 
@@ -72,7 +72,7 @@ LeanCTX is a **Lossless Minifier for Human Thought**.
 ## Where We're Going
 
 LeanCTX v1.x focuses on Dimension 1 (Compression) and Dimension 3 (Context Management). The foundation is solid:
-- 75+ CLI patterns, 14 tree-sitter languages, 10 MCP tools
+- 90+ CLI patterns, 14 tree-sitter languages, 19 MCP tools
 - Session cache with TTL, subagent isolation, delta reads
 - Persistent stats with USD tracking and visual dashboards
 - Works with every MCP editor: Cursor, Copilot, Claude Code, Windsurf, Codex, Antigravity, OpenCode

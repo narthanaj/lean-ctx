@@ -243,7 +243,7 @@ lean-ctx -c cargo test    # instead of: cargo test
 lean-ctx -c ls src/       # instead of: ls src/
 ```
 
-This saves 60-90% tokens per command. Works with: git, cargo, npm, pnpm, docker, kubectl, pip, ruff, go, curl, grep, find, ls, aws, helm, and 75+ more commands.
+This saves 60-90% tokens per command. Works with: git, cargo, npm, pnpm, docker, kubectl, pip, ruff, go, curl, grep, find, ls, aws, helm, and 90+ more commands.
 "#;
 
     if agents_path.exists() {
@@ -272,7 +272,7 @@ fn install_windsurf_rules() {
     let rules = r#"# lean-ctx Shell Optimization
 # Prefix all shell commands with `lean-ctx -c` for 60-90% token savings.
 # Example: `lean-ctx -c git status` instead of `git status`
-# Supported: git, cargo, npm, pnpm, docker, kubectl, pip, ruff, go, curl, grep, find, ls, aws, helm, and 75+ more.
+# Supported: git, cargo, npm, pnpm, docker, kubectl, pip, ruff, go, curl, grep, find, ls, aws, helm, and 90+ more.
 
 When running shell commands, always prefix them with `lean-ctx -c` to compress output and save tokens. For example:
 - `lean-ctx -c git status` instead of `git status`
@@ -302,7 +302,7 @@ When running shell commands, always prefix them with `lean-ctx -c` to compress o
 - `lean-ctx -c cargo test` instead of `cargo test`
 - `lean-ctx -c ls src/` instead of `ls src/`
 
-Supported commands: git, cargo, npm, pnpm, docker, kubectl, pip, ruff, go, curl, grep, find, ls, aws, helm, and 75+ more.
+Supported commands: git, cargo, npm, pnpm, docker, kubectl, pip, ruff, go, curl, grep, find, ls, aws, helm, and 90+ more.
 "#;
 
     write_file(&rules_path, rules);

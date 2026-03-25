@@ -490,7 +490,7 @@ fn init_powershell(binary: &str) {
 
     let binary_escaped = binary.replace('\\', "\\\\");
     let functions = format!(r#"
-# lean-ctx shell hook — transparent CLI compression (75+ patterns)
+# lean-ctx shell hook — transparent CLI compression (90+ patterns)
 if (-not $env:LEAN_CTX_ACTIVE) {{
   $LeanCtxBin = "{binary_escaped}"
   function git {{ & $LeanCtxBin -c "git $($args -join ' ')" }}
@@ -535,7 +535,7 @@ fn init_fish() {
         .map(|h| h.join(".config/fish/config.fish"))
         .unwrap_or_default();
 
-    let aliases = "\n# lean-ctx shell hook — transparent CLI compression (75+ patterns)\n\
+    let aliases = "\n# lean-ctx shell hook — transparent CLI compression (90+ patterns)\n\
         if not set -q LEAN_CTX_ACTIVE\n\
         \talias git 'lean-ctx -c git'\n\
         \talias npm 'lean-ctx -c npm'\n\
@@ -587,7 +587,7 @@ fn init_posix(is_zsh: bool) {
     };
 
     let aliases = r#"
-# lean-ctx shell hook — transparent CLI compression (75+ patterns)
+# lean-ctx shell hook — transparent CLI compression (90+ patterns)
 if [ -z "$LEAN_CTX_ACTIVE" ]; then
 alias git='lean-ctx -c git'
 alias npm='lean-ctx -c npm'

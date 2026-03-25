@@ -445,6 +445,8 @@ Add to `~/.codeium/windsurf/mcp_config.json`:
 }
 ```
 
+> **Troubleshooting:** If Windsurf detects the server but tools don't load, use the **full path** to the binary (e.g., `/Users/you/.cargo/bin/lean-ctx` or `/usr/local/bin/lean-ctx`). Windsurf spawns MCP servers with a minimal PATH that may not include `~/.cargo/bin`. Find your path with `which lean-ctx`.
+
 ### OpenAI Codex
 
 Add to `~/.codex/config.toml`:
