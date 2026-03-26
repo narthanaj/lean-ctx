@@ -2,6 +2,17 @@
 
 All notable changes to lean-ctx are documented here.
 
+## [2.3.2] — 2026-03-26
+
+### Fixed
+
+- **Dashboard flicker-free live updates** — Replaced full DOM rebuild on each poll with incremental value patching. KPI values, charts, and tables now update in-place without page flicker. Charts update data arrays instead of being destroyed and recreated. Polling interval reduced from 10s to 3s for near-real-time feel
+
+### Added
+
+- **`lean-ctx gain --live`** — Live terminal dashboard mode. Refreshes in-place every 2s without scrolling. Press Ctrl+C to exit
+- **Zed editor docs** — Full setup guide with `context_servers` configuration added to website getting-started page
+
 ## [2.3.1] — 2026-03-26
 
 ### Fixed

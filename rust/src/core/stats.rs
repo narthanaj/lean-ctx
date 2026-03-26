@@ -742,11 +742,36 @@ pub fn format_gain() -> String {
     o.push(String::new());
     o.push(format!("  {DIM}{ln56}{RST}"));
     o.push(format!(
-        "  {DIM}lean-ctx v2.3.1  |  leanctx.com  |  lean-ctx dashboard{RST}"
+        "  {DIM}lean-ctx v2.3.2  |  leanctx.com  |  lean-ctx dashboard{RST}"
     ));
     o.push(String::new());
 
     o.join("\n")
+}
+
+pub fn gain_live() {
+    use std::io::Write;
+
+    let interval = std::time::Duration::from_secs(2);
+    let mut line_count = 0usize;
+
+    eprintln!("  {DIM}▸ Live mode (2s refresh) · Ctrl+C to exit{RST}");
+
+    loop {
+        if line_count > 0 {
+            print!("\x1B[{line_count}A\x1B[J");
+        }
+
+        let output = format_gain();
+        let footer = format!("\n  {DIM}▸ Live · updates every 2s · Ctrl+C to exit{RST}\n");
+        let full = format!("{output}{footer}");
+        line_count = full.lines().count();
+
+        print!("{full}");
+        let _ = std::io::stdout().flush();
+
+        std::thread::sleep(interval);
+    }
 }
 
 pub fn format_gain_graph() -> String {

@@ -21,6 +21,10 @@ fn main() {
                 return;
             }
             "gain" => {
+                if rest.iter().any(|a| a == "--live" || a == "--watch") {
+                    core::stats::gain_live();
+                    return;
+                }
                 let output = if rest.iter().any(|a| a == "--graph") {
                     core::stats::format_gain_graph()
                 } else if rest.iter().any(|a| a == "--daily") {
@@ -106,7 +110,7 @@ fn main() {
                 return;
             }
             "--version" | "-V" => {
-                println!("lean-ctx 2.3.1");
+                println!("lean-ctx 2.3.2");
                 return;
             }
             "--help" | "-h" => {
@@ -158,7 +162,7 @@ fn run_mcp_server() -> Result<()> {
             .with_writer(std::io::stderr)
             .init();
 
-        tracing::info!("lean-ctx v2.3.1 MCP server starting");
+        tracing::info!("lean-ctx v2.3.2 MCP server starting");
 
         let server = tools::create_server();
         let transport = rmcp::transport::io::stdio();
@@ -190,7 +194,7 @@ fn shell_quote(s: &str) -> String {
 
 fn print_help() {
     println!(
-        "lean-ctx 2.3.1 — The Cognitive Filter for AI Engineering
+        "lean-ctx 2.3.2 — The Cognitive Filter for AI Engineering
 
 90+ compression patterns | 21 MCP tools | Context Continuity Protocol
 
@@ -202,6 +206,7 @@ USAGE:
 
 COMMANDS:
     gain                           Visual dashboard (colors, bars, sparklines, USD)
+    gain --live                    Live mode: auto-refreshes every 2s in-place
     gain --graph                   30-day savings chart
     gain --daily                   Bordered day-by-day table with USD
     gain --json                    Raw JSON export of all stats
@@ -259,6 +264,7 @@ EXAMPLES:
     lean-ctx -c \"kubectl get pods\" Compressed k8s output
     lean-ctx -c \"gh pr list\"       Compressed GitHub CLI output
     lean-ctx gain                  Visual terminal dashboard
+    lean-ctx gain --live           Live auto-updating terminal dashboard
     lean-ctx gain --graph          30-day savings chart
     lean-ctx gain --daily          Day-by-day breakdown with USD
     lean-ctx dashboard             Open web dashboard at localhost:3333

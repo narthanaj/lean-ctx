@@ -72,7 +72,7 @@ header{display:flex;align-items:center;justify-content:space-between;margin-bott
 .kpi-icon{margin-bottom:8px;opacity:.7}
 .kpi-icon svg{width:18px;height:18px}
 .kpi-val{font-family:var(--font-display);font-size:28px;font-weight:700;letter-spacing:-0.04em;
-  line-height:1;margin-bottom:4px}
+  line-height:1;margin-bottom:4px;transition:color .3s}
 .kpi-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.2em;font-weight:600}
 .kpi-sub{font-size:11px;color:var(--muted);margin-top:8px;font-family:var(--mono);font-size:10px}
 .c-green .kpi-val{color:var(--accent)}.c-green .kpi-icon svg{color:var(--accent)}
@@ -94,7 +94,8 @@ header{display:flex;align-items:center;justify-content:space-between;margin-bott
 
 .split-stat{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 .split-stat-label{color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:0.15em;font-weight:600}
-.split-stat-val{font-family:var(--font-display);font-size:22px;font-weight:700;letter-spacing:-0.03em;margin-top:4px}
+.split-stat-val{font-family:var(--font-display);font-size:22px;font-weight:700;letter-spacing:-0.03em;margin-top:4px;
+  transition:color .3s}
 
 table{width:100%;border-collapse:collapse}
 th{text-align:left;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.15em;
@@ -122,6 +123,9 @@ tr:hover td{background:var(--surface-2)}
   font-family:var(--mono);font-size:.85em}
 .loading{text-align:center;padding:120px 20px;color:var(--muted);font-size:13px}
 
+[data-live]{transition:opacity .15s}
+[data-live].flash{opacity:.6}
+
 .footer{text-align:center;padding:40px 20px;color:var(--muted);font-size:11px;
   border-top:1px solid var(--border-glow);margin-top:40px;letter-spacing:0.02em}
 .footer a{color:var(--accent);text-decoration:none;transition:opacity .2s}
@@ -139,7 +143,7 @@ tr:hover td{background:var(--surface-2)}
     <div style="display:flex;align-items:center;gap:16px">
       <div class="logo">
         <h1>Lean<span>CTX</span></h1>
-        <span class="version">v2.3.1</span>
+        <span class="version">v2.3.2</span>
       </div>
       <a class="hdr-link" href="https://leanctx.com" target="_blank">leanctx.com ↗</a>
     </div>
@@ -154,7 +158,7 @@ tr:hover td{background:var(--surface-2)}
         <span id="autoLabel">Live</span>
       </div>
       <button class="btn" id="autoToggle" onclick="toggleAuto()">Pause</button>
-      <button class="btn" onclick="load()">
+      <button class="btn" onclick="loadAll()">
         <svg style="width:12px;height:12px;vertical-align:-1px;margin-right:4px" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
         Refresh
       </button>
@@ -170,6 +174,9 @@ let autoRefresh=true;
 let autoInterval=null;
 let currentRange=0;
 let rawData=null;
+let domBuilt=false;
+let charts={};
+let prevHash='';
 
 function fmt(n){
   if(n>=1e6)return(n/1e6).toFixed(1)+'M';
@@ -195,7 +202,6 @@ function splitBySource(cmds){
   }
   return{mcp,hook};
 }
-
 function filterDaily(daily,range){
   if(!range||range===0)return daily;
   return daily.slice(-range);
@@ -206,7 +212,7 @@ function setRange(r){
   document.querySelectorAll('.filter-btn').forEach(b=>{
     b.classList.toggle('active',parseInt(b.dataset.range)===r);
   });
-  if(rawData)render(rawData);
+  if(rawData)updateAll(rawData);
 }
 
 function toggleAuto(){
@@ -220,7 +226,7 @@ function toggleAuto(){
 
 function startAutoRefresh(){
   if(autoInterval)clearInterval(autoInterval);
-  autoInterval=setInterval(loadAll,10000);
+  autoInterval=setInterval(loadAll,3000);
 }
 
 const icons={
@@ -231,69 +237,46 @@ const icons={
   dollar:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>'
 };
 
-let charts={};
-
-async function load(){
-  try{
-    const r=await fetch('/api/stats');
-    rawData=await r.json();
-    render(rawData);
-  }catch(e){
-    $('root').innerHTML='<div class="empty"><h2>Connection Error</h2><p>Could not reach the dashboard API. Make sure LeanCTX dashboard is running.</p></div>';
-  }
+function live(id,val){
+  const el=$(id);
+  if(!el)return;
+  const s=String(val);
+  if(el.textContent===s)return;
+  el.textContent=s;
+  el.classList.add('flash');
+  setTimeout(()=>el.classList.remove('flash'),200);
 }
 
-function render(d){
-  if(!d.total_commands||d.total_commands===0){
-    $('root').innerHTML=`<div class="empty">
-      <h2>No data yet</h2>
-      <p>Start using LeanCTX via shell hook (<code>git status</code>, <code>npm install</code>) or MCP tools (<code>ctx_read</code>, <code>ctx_shell</code>) in your editor. Savings will appear here automatically.</p>
-    </div>`;
-    return;
-  }
-
-  const daily=filterDaily(d.daily||[],currentRange);
-  const saved=d.total_commands?d.total_input_tokens-d.total_output_tokens:0;
-  const rate=pct(saved,d.total_input_tokens);
-  const days=daily.length;
-  const costSaved=cost(saved);
-  const avgPerDay=days>0?Math.round(saved/days):0;
-  const cmds=Object.entries(d.commands||{});
-  cmds.sort((a,b)=>(b[1].input_tokens-b[1].output_tokens)-(a[1].input_tokens-a[1].output_tokens));
-  const split=splitBySource(cmds);
-
-  let firstUse='—';
-  if(d.first_use)firstUse=d.first_use.substring(0,10);
-
+function buildDom(){
   $('root').innerHTML=`
     <div class="kpi-grid">
       <div class="kpi c-green">
         <div class="kpi-icon">${icons.zap}</div>
-        <div class="kpi-val">${fmt(saved)}</div>
+        <div class="kpi-val" data-live id="vSaved"></div>
         <div class="kpi-label">Tokens Saved</div>
-        <div class="kpi-sub">${fmtFull(saved)} total</div>
+        <div class="kpi-sub" data-live id="vSavedSub"></div>
       </div>
       <div class="kpi c-purple">
         <div class="kpi-icon">${icons.gauge}</div>
-        <div class="kpi-val">${rate}%</div>
+        <div class="kpi-val" data-live id="vRate"></div>
         <div class="kpi-label">Savings Rate</div>
-        <div class="kpi-sub">${fmt(d.total_input_tokens)} in → ${fmt(d.total_output_tokens)} out</div>
+        <div class="kpi-sub" data-live id="vRateSub"></div>
       </div>
       <div class="kpi c-blue">
         <div class="kpi-icon">${icons.terminal}</div>
-        <div class="kpi-val">${fmtFull(d.total_commands)}</div>
+        <div class="kpi-val" data-live id="vCalls"></div>
         <div class="kpi-label">Total Calls</div>
-        <div class="kpi-sub">${cmds.filter(c=>isMcp(c[0])).length} MCP · ${cmds.filter(c=>!isMcp(c[0])).length} Hook</div>
+        <div class="kpi-sub" data-live id="vCallsSub"></div>
       </div>
       <div class="kpi c-pink">
         <div class="kpi-icon">${icons.calendar}</div>
-        <div class="kpi-val">${days}</div>
+        <div class="kpi-val" data-live id="vDays"></div>
         <div class="kpi-label">Days Active</div>
-        <div class="kpi-sub">Since ${firstUse}</div>
+        <div class="kpi-sub" data-live id="vDaysSub"></div>
       </div>
       <div class="kpi c-yellow">
         <div class="kpi-icon">${icons.dollar}</div>
-        <div class="kpi-val">${costSaved}</div>
+        <div class="kpi-val" data-live id="vCost"></div>
         <div class="kpi-label">Cost Saved</div>
         <div class="kpi-sub">@ $2.50/M input tokens</div>
       </div>
@@ -304,32 +287,32 @@ function render(d){
         <h3>MCP Tools</h3>
         <div class="split-stat">
           <div><span class="split-stat-label">Calls</span>
-            <div class="split-stat-val" style="color:var(--accent-2)">${fmtFull(split.mcp.count)}</div></div>
+            <div class="split-stat-val" data-live id="vMcpCalls" style="color:var(--accent-2)"></div></div>
           <div><span class="split-stat-label">Tokens Saved</span>
-            <div class="split-stat-val" style="color:var(--accent)">${fmt(split.mcp.saved)}</div></div>
+            <div class="split-stat-val" data-live id="vMcpSaved" style="color:var(--accent)"></div></div>
           <div><span class="split-stat-label">Savings Rate</span>
-            <div class="split-stat-val" style="color:var(--accent-2)">${pct(split.mcp.saved,split.mcp.input)}%</div></div>
+            <div class="split-stat-val" data-live id="vMcpRate" style="color:var(--accent-2)"></div></div>
           <div><span class="split-stat-label">Cost Saved</span>
-            <div class="split-stat-val" style="color:var(--warning)">${cost(split.mcp.saved)}</div></div>
+            <div class="split-stat-val" data-live id="vMcpCost" style="color:var(--warning)"></div></div>
         </div>
         <div class="bar-bg" style="margin-top:16px">
-          <div class="bar-fill bar-purple" style="width:${pct(split.mcp.saved,split.mcp.input)}%"></div>
+          <div class="bar-fill bar-purple" id="vMcpBar" style="width:0%"></div>
         </div>
       </div>
       <div class="card">
         <h3>Shell Hook</h3>
         <div class="split-stat">
           <div><span class="split-stat-label">Calls</span>
-            <div class="split-stat-val" style="color:var(--blue)">${fmtFull(split.hook.count)}</div></div>
+            <div class="split-stat-val" data-live id="vHookCalls" style="color:var(--blue)"></div></div>
           <div><span class="split-stat-label">Tokens Saved</span>
-            <div class="split-stat-val" style="color:var(--accent)">${fmt(split.hook.saved)}</div></div>
+            <div class="split-stat-val" data-live id="vHookSaved" style="color:var(--accent)"></div></div>
           <div><span class="split-stat-label">Savings Rate</span>
-            <div class="split-stat-val" style="color:var(--blue)">${pct(split.hook.saved,split.hook.input)}%</div></div>
+            <div class="split-stat-val" data-live id="vHookRate" style="color:var(--blue)"></div></div>
           <div><span class="split-stat-label">Cost Saved</span>
-            <div class="split-stat-val" style="color:var(--warning)">${cost(split.hook.saved)}</div></div>
+            <div class="split-stat-val" data-live id="vHookCost" style="color:var(--warning)"></div></div>
         </div>
         <div class="bar-bg" style="margin-top:16px">
-          <div class="bar-fill" style="width:${pct(split.hook.saved,split.hook.input)}%;background:var(--blue)"></div>
+          <div class="bar-fill" id="vHookBar" style="width:0%;background:var(--blue)"></div>
         </div>
       </div>
     </div>
@@ -350,19 +333,19 @@ function render(d){
         <h3>Session Overview</h3>
         <div class="split-stat" style="padding:8px 0">
           <div><span class="split-stat-label">Avg Saved/Day</span>
-            <div class="split-stat-val" style="color:var(--accent)">${fmt(avgPerDay)}</div></div>
+            <div class="split-stat-val" data-live id="vAvgDay" style="color:var(--accent)"></div></div>
           <div><span class="split-stat-label">Total Input</span>
-            <div class="split-stat-val">${fmt(d.total_input_tokens)}</div></div>
+            <div class="split-stat-val" data-live id="vTotalIn"></div></div>
           <div><span class="split-stat-label">Total Output</span>
-            <div class="split-stat-val">${fmt(d.total_output_tokens)}</div></div>
+            <div class="split-stat-val" data-live id="vTotalOut"></div></div>
           <div><span class="split-stat-label">Cost Without LeanCTX</span>
-            <div class="split-stat-val" style="color:var(--danger)">${cost(d.total_input_tokens)}</div></div>
+            <div class="split-stat-val" data-live id="vCostWithout" style="color:var(--danger)"></div></div>
         </div>
         <div class="bar-bg" style="margin-top:12px">
-          <div class="bar-fill bar-green" style="width:${rate}%"></div>
+          <div class="bar-fill bar-green" id="vOverallBar" style="width:0%"></div>
         </div>
         <div style="display:flex;justify-content:space-between;margin-top:6px;font-size:10px;color:var(--muted)">
-          <span>0%</span><span>${rate}% compressed</span><span>100%</span>
+          <span>0%</span><span data-live id="vOverallLabel"></span><span>100%</span>
         </div>
       </div>
     </div>
@@ -372,19 +355,19 @@ function render(d){
         <h3>CEP Intelligence</h3>
         <div class="kpi-grid" style="grid-template-columns:repeat(5,1fr);margin-bottom:0">
           <div class="kpi c-green" style="padding:14px">
-            <div class="kpi-val" id="cepScore" style="font-size:24px">—</div>
+            <div class="kpi-val" data-live id="cepScore" style="font-size:24px">—</div>
             <div class="kpi-label">CEP Score</div></div>
           <div class="kpi c-purple" style="padding:14px">
-            <div class="kpi-val" id="cepCache" style="font-size:24px">—</div>
+            <div class="kpi-val" data-live id="cepCache" style="font-size:24px">—</div>
             <div class="kpi-label">Cache Hit Rate</div></div>
           <div class="kpi c-blue" style="padding:14px">
-            <div class="kpi-val" id="cepModes" style="font-size:24px">—</div>
+            <div class="kpi-val" data-live id="cepModes" style="font-size:24px">—</div>
             <div class="kpi-label">Mode Diversity</div></div>
           <div class="kpi c-pink" style="padding:14px">
-            <div class="kpi-val" id="cepCompression" style="font-size:24px">—</div>
+            <div class="kpi-val" data-live id="cepCompression" style="font-size:24px">—</div>
             <div class="kpi-label">Compression</div></div>
           <div class="kpi c-yellow" style="padding:14px">
-            <div class="kpi-val" id="cepComplexity" style="font-size:24px">—</div>
+            <div class="kpi-val" data-live id="cepComplexity" style="font-size:24px">—</div>
             <div class="kpi-label">Task Complexity</div></div>
         </div>
       </div>
@@ -420,16 +403,94 @@ function render(d){
       </div>
     </div>
   `;
+  domBuilt=true;
+}
 
-  renderCharts(daily,cmds,split);
-  renderCmdTable(cmds);
-  renderDailyTable(daily);
+function updateAll(d){
+  if(!d.total_commands||d.total_commands===0){
+    if(domBuilt){
+      $('root').innerHTML=`<div class="empty">
+        <h2>No data yet</h2>
+        <p>Start using LeanCTX via shell hook (<code>git status</code>, <code>npm install</code>) or MCP tools (<code>ctx_read</code>, <code>ctx_shell</code>) in your editor. Savings will appear here automatically.</p>
+      </div>`;
+      domBuilt=false;
+    }
+    return;
+  }
+
+  if(!domBuilt)buildDom();
+
+  const daily=filterDaily(d.daily||[],currentRange);
+  const saved=d.total_input_tokens-d.total_output_tokens;
+  const rate=pct(saved,d.total_input_tokens);
+  const days=daily.length;
+  const costSaved=cost(saved);
+  const avgPerDay=days>0?Math.round(saved/days):0;
+  const cmds=Object.entries(d.commands||{});
+  cmds.sort((a,b)=>(b[1].input_tokens-b[1].output_tokens)-(a[1].input_tokens-a[1].output_tokens));
+  const split=splitBySource(cmds);
+
+  let firstUse='—';
+  if(d.first_use)firstUse=d.first_use.substring(0,10);
+
+  live('vSaved',fmt(saved));
+  live('vSavedSub',fmtFull(saved)+' total');
+  live('vRate',rate+'%');
+  live('vRateSub',fmt(d.total_input_tokens)+' in → '+fmt(d.total_output_tokens)+' out');
+  live('vCalls',fmtFull(d.total_commands));
+  live('vCallsSub',cmds.filter(c=>isMcp(c[0])).length+' MCP · '+cmds.filter(c=>!isMcp(c[0])).length+' Hook');
+  live('vDays',String(days));
+  live('vDaysSub','Since '+firstUse);
+  live('vCost',costSaved);
+
+  live('vMcpCalls',fmtFull(split.mcp.count));
+  live('vMcpSaved',fmt(split.mcp.saved));
+  live('vMcpRate',pct(split.mcp.saved,split.mcp.input)+'%');
+  live('vMcpCost',cost(split.mcp.saved));
+  $('vMcpBar').style.width=pct(split.mcp.saved,split.mcp.input)+'%';
+
+  live('vHookCalls',fmtFull(split.hook.count));
+  live('vHookSaved',fmt(split.hook.saved));
+  live('vHookRate',pct(split.hook.saved,split.hook.input)+'%');
+  live('vHookCost',cost(split.hook.saved));
+  $('vHookBar').style.width=pct(split.hook.saved,split.hook.input)+'%';
+
+  live('vAvgDay',fmt(avgPerDay));
+  live('vTotalIn',fmt(d.total_input_tokens));
+  live('vTotalOut',fmt(d.total_output_tokens));
+  live('vCostWithout',cost(d.total_input_tokens));
+  $('vOverallBar').style.width=rate+'%';
+  live('vOverallLabel',rate+'% compressed');
+
+  const dailyHash=JSON.stringify(daily.map(x=>x.date+x.commands));
+  const cmdsHash=JSON.stringify(cmds.map(c=>c[0]+c[1].count));
+  const dataHash=dailyHash+cmdsHash;
+
+  if(dataHash!==prevHash){
+    updateCharts(daily,cmds,split);
+    renderCmdTable(cmds);
+    renderDailyTable(daily);
+    prevHash=dataHash;
+  }
+}
+
+async function load(){
+  try{
+    const r=await fetch('/api/stats');
+    rawData=await r.json();
+    updateAll(rawData);
+  }catch(e){
+    if(!domBuilt){
+      $('root').innerHTML='<div class="empty"><h2>Connection Error</h2><p>Could not reach the dashboard API. Make sure LeanCTX dashboard is running.</p></div>';
+    }
+  }
 }
 
 function chartDefaults(){
   return {
     responsive:true,
     maintainAspectRatio:true,
+    animation:{duration:600,easing:'easeOutQuart'},
     plugins:{legend:{display:false}},
     scales:{
       x:{ticks:{color:'#7b7b9a',font:{size:10,family:'Inter'}},grid:{color:'rgba(255,255,255,0.04)'},border:{display:false}},
@@ -438,10 +499,7 @@ function chartDefaults(){
   };
 }
 
-function renderCharts(daily,cmds,split){
-  Object.values(charts).forEach(c=>{if(c&&c.destroy)c.destroy()});
-  charts={};
-
+function updateCharts(daily,cmds,split){
   const labels=daily.map(d=>d.date.substring(5));
   const savedArr=daily.map(d=>d.input_tokens-d.output_tokens);
   const outputArr=daily.map(d=>d.output_tokens);
@@ -450,78 +508,110 @@ function renderCharts(daily,cmds,split){
   let cumulative=[];let sum=0;
   for(const s of savedArr){sum+=s;cumulative.push(sum)}
 
-  charts.cum=new Chart($('cCumulative'),{
-    type:'line',
-    data:{labels,datasets:[{
-      data:cumulative,fill:true,
-      borderColor:'#34d399',backgroundColor:'rgba(52,211,153,.06)',
-      borderWidth:2,pointRadius:daily.length>30?0:3,pointBackgroundColor:'#34d399',
-      tension:.35
-    }]},
-    options:{...chartDefaults(),plugins:{legend:{display:false},
-      tooltip:{callbacks:{label:ctx=>`${fmt(ctx.parsed.y)} tokens saved`}}}}
-  });
+  if(charts.cum){
+    charts.cum.data.labels=labels;
+    charts.cum.data.datasets[0].data=cumulative;
+    charts.cum.options.elements={point:{radius:daily.length>30?0:3}};
+    charts.cum.update('none');
+  }else{
+    charts.cum=new Chart($('cCumulative'),{
+      type:'line',
+      data:{labels,datasets:[{
+        data:cumulative,fill:true,
+        borderColor:'#34d399',backgroundColor:'rgba(52,211,153,.06)',
+        borderWidth:2,pointRadius:daily.length>30?0:3,pointBackgroundColor:'#34d399',
+        tension:.35
+      }]},
+      options:{...chartDefaults(),plugins:{legend:{display:false},
+        tooltip:{callbacks:{label:ctx=>`${fmt(ctx.parsed.y)} tokens saved`}}}}
+    });
+  }
 
-  charts.rate=new Chart($('cRate'),{
-    type:'line',
-    data:{labels,datasets:[{
-      data:rateArr,fill:true,
-      borderColor:'#818cf8',backgroundColor:'rgba(129,140,248,.06)',
-      borderWidth:2,pointRadius:daily.length>20?0:3,pointBackgroundColor:'#818cf8',
-      tension:.35
-    }]},
-    options:{...chartDefaults(),
-      scales:{...chartDefaults().scales,y:{...chartDefaults().scales.y,
-        ticks:{...chartDefaults().scales.y.ticks,callback:v=>v+'%'},
-        suggestedMin:0,suggestedMax:100}},
-      plugins:{legend:{display:false},
-        tooltip:{callbacks:{label:ctx=>ctx.parsed.y+'% savings rate'}}}}
-  });
+  if(charts.rate){
+    charts.rate.data.labels=labels;
+    charts.rate.data.datasets[0].data=rateArr;
+    charts.rate.update('none');
+  }else{
+    charts.rate=new Chart($('cRate'),{
+      type:'line',
+      data:{labels,datasets:[{
+        data:rateArr,fill:true,
+        borderColor:'#818cf8',backgroundColor:'rgba(129,140,248,.06)',
+        borderWidth:2,pointRadius:daily.length>20?0:3,pointBackgroundColor:'#818cf8',
+        tension:.35
+      }]},
+      options:{...chartDefaults(),
+        scales:{...chartDefaults().scales,y:{...chartDefaults().scales.y,
+          ticks:{...chartDefaults().scales.y.ticks,callback:v=>v+'%'},
+          suggestedMin:0,suggestedMax:100}},
+        plugins:{legend:{display:false},
+          tooltip:{callbacks:{label:ctx=>ctx.parsed.y+'% savings rate'}}}}
+    });
+  }
 
-  charts.daily=new Chart($('cDaily'),{
-    type:'bar',
-    data:{labels,datasets:[
-      {label:'Saved',data:savedArr,backgroundColor:'rgba(52,211,153,.5)',borderRadius:6,borderSkipped:false},
-      {label:'Sent',data:outputArr,backgroundColor:'rgba(129,140,248,.25)',borderRadius:6,borderSkipped:false}
-    ]},
-    options:{...chartDefaults(),
-      plugins:{legend:{display:true,position:'bottom',labels:{color:'#7b7b9a',font:{size:11,family:'Inter'},
-        usePointStyle:true,pointStyle:'circle',padding:16}}},
-      scales:{...chartDefaults().scales,x:{...chartDefaults().scales.x,stacked:true},
-        y:{...chartDefaults().scales.y,stacked:true}}}
-  });
+  if(charts.daily){
+    charts.daily.data.labels=labels;
+    charts.daily.data.datasets[0].data=savedArr;
+    charts.daily.data.datasets[1].data=outputArr;
+    charts.daily.update('none');
+  }else{
+    charts.daily=new Chart($('cDaily'),{
+      type:'bar',
+      data:{labels,datasets:[
+        {label:'Saved',data:savedArr,backgroundColor:'rgba(52,211,153,.5)',borderRadius:6,borderSkipped:false},
+        {label:'Sent',data:outputArr,backgroundColor:'rgba(129,140,248,.25)',borderRadius:6,borderSkipped:false}
+      ]},
+      options:{...chartDefaults(),
+        plugins:{legend:{display:true,position:'bottom',labels:{color:'#7b7b9a',font:{size:11,family:'Inter'},
+          usePointStyle:true,pointStyle:'circle',padding:16}}},
+        scales:{...chartDefaults().scales,x:{...chartDefaults().scales.x,stacked:true},
+          y:{...chartDefaults().scales.y,stacked:true}}}
+    });
+  }
 
   const top10=cmds.slice(0,10);
-  charts.cmds=new Chart($('cCommands'),{
-    type:'bar',
-    data:{labels:top10.map(c=>c[0]),datasets:[{
-      data:top10.map(c=>c[1].input_tokens-c[1].output_tokens),
-      backgroundColor:top10.map(c=>isMcp(c[0])?'#818cf8':'#38bdf8'),
-      borderRadius:6,borderSkipped:false
-    }]},
-    options:{...chartDefaults(),indexAxis:'y',
-      scales:{
-        x:{ticks:{color:'#7b7b9a',font:{size:10},callback:v=>fmt(v)},grid:{color:'rgba(255,255,255,0.04)'},border:{display:false}},
-        y:{ticks:{color:'#e4e4ef',font:{size:11,family:"'JetBrains Mono',monospace"}},grid:{display:false},border:{display:false}}
-      },
-      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>fmt(ctx.parsed.x)+' tokens saved'}}}}
-  });
+  if(charts.cmds){
+    charts.cmds.data.labels=top10.map(c=>c[0]);
+    charts.cmds.data.datasets[0].data=top10.map(c=>c[1].input_tokens-c[1].output_tokens);
+    charts.cmds.data.datasets[0].backgroundColor=top10.map(c=>isMcp(c[0])?'#818cf8':'#38bdf8');
+    charts.cmds.update('none');
+  }else{
+    charts.cmds=new Chart($('cCommands'),{
+      type:'bar',
+      data:{labels:top10.map(c=>c[0]),datasets:[{
+        data:top10.map(c=>c[1].input_tokens-c[1].output_tokens),
+        backgroundColor:top10.map(c=>isMcp(c[0])?'#818cf8':'#38bdf8'),
+        borderRadius:6,borderSkipped:false
+      }]},
+      options:{...chartDefaults(),indexAxis:'y',
+        scales:{
+          x:{ticks:{color:'#7b7b9a',font:{size:10},callback:v=>fmt(v)},grid:{color:'rgba(255,255,255,0.04)'},border:{display:false}},
+          y:{ticks:{color:'#e4e4ef',font:{size:11,family:"'JetBrains Mono',monospace"}},grid:{display:false},border:{display:false}}
+        },
+        plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>fmt(ctx.parsed.x)+' tokens saved'}}}}
+    });
+  }
 
-  charts.src=new Chart($('cSourcePie'),{
-    type:'doughnut',
-    data:{
-      labels:['MCP Tools','Shell Hook'],
-      datasets:[{
-        data:[split.mcp.saved,split.hook.saved],
-        backgroundColor:['#818cf8','#38bdf8'],borderWidth:0,hoverOffset:8,
-        borderRadius:4
-      }]
-    },
-    options:{responsive:true,maintainAspectRatio:true,cutout:'65%',
-      plugins:{legend:{position:'bottom',labels:{color:'#7b7b9a',font:{size:12,family:'Inter'},
-        padding:20,usePointStyle:true,pointStyle:'circle'}},
-        tooltip:{callbacks:{label:ctx=>`${ctx.label}: ${fmt(ctx.parsed)} tokens saved`}}}}
-  });
+  if(charts.src){
+    charts.src.data.datasets[0].data=[split.mcp.saved,split.hook.saved];
+    charts.src.update('none');
+  }else{
+    charts.src=new Chart($('cSourcePie'),{
+      type:'doughnut',
+      data:{
+        labels:['MCP Tools','Shell Hook'],
+        datasets:[{
+          data:[split.mcp.saved,split.hook.saved],
+          backgroundColor:['#818cf8','#38bdf8'],borderWidth:0,hoverOffset:8,
+          borderRadius:4
+        }]
+      },
+      options:{responsive:true,maintainAspectRatio:true,cutout:'65%',
+        plugins:{legend:{position:'bottom',labels:{color:'#7b7b9a',font:{size:12,family:'Inter'},
+          padding:20,usePointStyle:true,pointStyle:'circle'}},
+          tooltip:{callbacks:{label:ctx=>`${ctx.label}: ${fmt(ctx.parsed)} tokens saved`}}}}
+    });
+  }
 }
 
 function renderCmdTable(cmds){
@@ -573,11 +663,11 @@ async function loadMcp(){
     const r=await fetch('/api/mcp');
     const m=await r.json();
     if(m.cep_score!==undefined){
-      $('cepScore').textContent=m.cep_score+'/100';
-      $('cepCache').textContent=m.cache_utilization+'%';
-      $('cepModes').textContent=m.mode_diversity+'%';
-      $('cepCompression').textContent=m.compression_rate+'%';
-      $('cepComplexity').textContent=m.task_complexity||'Standard';
+      live('cepScore',m.cep_score+'/100');
+      live('cepCache',m.cache_utilization+'%');
+      live('cepModes',m.mode_diversity+'%');
+      live('cepCompression',m.compression_rate+'%');
+      live('cepComplexity',m.task_complexity||'Standard');
       return;
     }
   }catch(e){}
@@ -595,13 +685,13 @@ async function loadMcp(){
     const modes=new Set(mcpCmds.map(c=>c[0])).size;
     const modePct=Math.min(100,Math.round(modes/6*100));
     const score=Math.round(cacheRate*0.3+modePct*0.25+rate*0.25+70*0.2);
-    $('cepScore').textContent=score+'/100';
-    $('cepCache').textContent=cacheRate+'%';
-    $('cepModes').textContent=modePct+'%';
-    $('cepCompression').textContent=rate+'%';
-    $('cepComplexity').textContent='Standard';
+    live('cepScore',score+'/100');
+    live('cepCache',cacheRate+'%');
+    live('cepModes',modePct+'%');
+    live('cepCompression',rate+'%');
+    live('cepComplexity','Standard');
   }catch(e){
-    $('cepScore').textContent='—';
+    live('cepScore','—');
   }
 }
 
