@@ -1,6 +1,6 @@
 [package]
 name = "lean-ctx"
-version = "2.3.0"
+version = "2.3.1"
 edition = "2021"
 description = "Context Intelligence Engine with CCP. 21 MCP tools, 90+ compression patterns, cross-session memory (CCP), LITM-aware positioning. Reduces LLM token consumption by up to 99%."
 license = "MIT"
@@ -48,6 +48,7 @@ md-5 = "0.10"
 anyhow = "1"
 regex = "1"
 walkdir = "2"
+ignore = "0.4"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 dirs = "5"

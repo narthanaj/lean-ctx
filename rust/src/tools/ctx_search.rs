@@ -1,7 +1,7 @@
 use std::path::Path;
 
+use ignore::WalkBuilder;
 use regex::Regex;
-use walkdir::WalkDir;
 
 use crate::core::protocol;
 use crate::core::symbol_map::{self, SymbolMap};
@@ -14,6 +14,7 @@ pub fn handle(
     ext_filter: Option<&str>,
     max_results: usize,
     crp_mode: CrpMode,
+    respect_gitignore: bool,
 ) -> String {
     let re = match Regex::new(pattern) {
         Ok(r) => r,
@@ -25,25 +26,24 @@ pub fn handle(
         return format!("ERROR: {dir} does not exist");
     }
 
+    let walker = WalkBuilder::new(root)
+        .hidden(true)
+        .git_ignore(respect_gitignore)
+        .git_global(respect_gitignore)
+        .git_exclude(respect_gitignore)
+        .build();
+
     let mut matches = Vec::new();
     let mut files_searched = 0u32;
     let mut total_original_tokens = 0usize;
 
-    for entry in WalkDir::new(root)
-        .min_depth(1)
-        .into_iter()
-        .filter_map(|e| e.ok())
-    {
-        if entry.file_type().is_dir() {
+    for entry in walker.filter_map(|e| e.ok()) {
+        if entry.file_type().is_none_or(|ft| ft.is_dir()) {
             continue;
         }
 
         let path = entry.path();
-        let name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
 
-        if name.starts_with('.') {
-            continue;
-        }
         if is_binary_ext(path) {
             continue;
         }

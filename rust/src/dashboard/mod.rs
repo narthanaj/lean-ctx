@@ -95,10 +95,17 @@ async fn handle_request(mut stream: tokio::net::TcpStream) {
         _ => ("404 Not Found", "text/plain", "Not Found".to_string()),
     };
 
+    let cache_header = if content_type.starts_with("application/json") {
+        "Cache-Control: no-cache, no-store, must-revalidate\r\nPragma: no-cache\r\n"
+    } else {
+        ""
+    };
+
     let response = format!(
         "HTTP/1.1 {status}\r\n\
          Content-Type: {content_type}\r\n\
          Content-Length: {}\r\n\
+         {cache_header}\
          Access-Control-Allow-Origin: *\r\n\
          Connection: close\r\n\
          \r\n\

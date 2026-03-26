@@ -267,20 +267,15 @@ fn find_files_for_area(area: &str, root: &str) -> Option<Vec<String>> {
     let mut matches = Vec::new();
     let search_term = area.to_lowercase();
 
-    walkdir::WalkDir::new(root)
-        .max_depth(6)
-        .into_iter()
+    ignore::WalkBuilder::new(root)
+        .hidden(true)
+        .git_ignore(true)
+        .git_global(true)
+        .git_exclude(true)
+        .max_depth(Some(6))
+        .build()
         .filter_map(|e| e.ok())
-        .filter(|e| e.file_type().is_file())
-        .filter(|e| {
-            let path = e.path().to_string_lossy().to_lowercase();
-            !path.contains("node_modules")
-                && !path.contains("target/")
-                && !path.contains(".git/")
-                && !path.contains("dist/")
-                && !path.contains("build/")
-                && !path.contains("vendor/")
-        })
+        .filter(|e| e.file_type().is_some_and(|ft| ft.is_file()))
         .filter(|e| {
             let name = e.file_name().to_string_lossy().to_lowercase();
             name.contains(&search_term)
@@ -308,11 +303,15 @@ fn find_test_files(area: &str, root: &str) -> Option<Vec<String>> {
     let search_term = area.to_lowercase();
     let mut matches = Vec::new();
 
-    walkdir::WalkDir::new(root)
-        .max_depth(6)
-        .into_iter()
+    ignore::WalkBuilder::new(root)
+        .hidden(true)
+        .git_ignore(true)
+        .git_global(true)
+        .git_exclude(true)
+        .max_depth(Some(6))
+        .build()
         .filter_map(|e| e.ok())
-        .filter(|e| e.file_type().is_file())
+        .filter(|e| e.file_type().is_some_and(|ft| ft.is_file()))
         .filter(|e| {
             let name = e.file_name().to_string_lossy().to_lowercase();
             (name.contains("test") || name.contains("spec"))
@@ -321,10 +320,6 @@ fn find_test_files(area: &str, root: &str) -> Option<Vec<String>> {
                         .to_string_lossy()
                         .to_lowercase()
                         .contains(&search_term))
-        })
-        .filter(|e| {
-            let path = e.path().to_string_lossy().to_lowercase();
-            !path.contains("node_modules") && !path.contains("target/")
         })
         .take(5)
         .for_each(|e| {

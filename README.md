@@ -17,7 +17,7 @@
 lean-ctx reduces LLM token consumption by **up to 99%** through three complementary strategies in a single binary:
 
 1. **Shell Hook** — Transparently compresses CLI output (90+ patterns) before it reaches the LLM. Works without LLM cooperation.
-2. **MCP Server** — 21 tools for cached file reads, adaptive mode selection, incremental deltas, dependency maps, intent detection, cross-file dedup, project graph, cross-session memory (CCP), and session metrics. Works with Cursor, GitHub Copilot, Claude Code, Windsurf, OpenAI Codex, Google Antigravity, OpenCode, and any MCP-compatible editor.
+2. **MCP Server** — 21 tools for cached file reads, adaptive mode selection, incremental deltas, dependency maps, intent detection, cross-file dedup, project graph, cross-session memory (CCP), and session metrics. Works with Cursor, GitHub Copilot, Claude Code, Windsurf, Zed, OpenAI Codex, Google Antigravity, OpenCode, and any MCP-compatible editor.
 3. **AI Tool Hooks** — One-command integration for Claude Code, Cursor, Gemini CLI, Codex, Windsurf, and Cline via `lean-ctx init --agent <tool>`.
 
 ### Three Intelligence Protocols
@@ -85,7 +85,7 @@ cp target/release/lean-ctx ~/.local/bin/
 ### Verify Installation
 
 ```bash
-lean-ctx --version   # Should show "lean-ctx 2.3.0"
+lean-ctx --version   # Should show "lean-ctx 2.3.1"
 lean-ctx gain        # Should show token savings stats
 ```
 
@@ -525,6 +525,25 @@ Add to `~/.codeium/windsurf/mcp_config.json`:
 
 > **Troubleshooting:** If Windsurf detects the server but tools don't load, use the **full path** to the binary (e.g., `/Users/you/.cargo/bin/lean-ctx` or `/usr/local/bin/lean-ctx`). Windsurf spawns MCP servers with a minimal PATH that may not include `~/.cargo/bin`. Find your path with `which lean-ctx`.
 
+### Zed
+
+Add to `~/.config/zed/settings.json`:
+
+```json
+{
+  "context_servers": {
+    "lean-ctx": {
+      "source": "custom",
+      "command": "lean-ctx",
+      "args": [],
+      "env": {}
+    }
+  }
+}
+```
+
+> **Note:** Zed requires `source: "custom"` for manually configured MCP servers. Use the full path to the binary if `lean-ctx` is not in Zed's PATH (e.g., `"/Users/you/.cargo/bin/lean-ctx"`). Verify the server status in the Agent Panel settings — a green dot indicates the server is active.
+
 ### OpenAI Codex
 
 Add to `~/.codex/config.toml`:
@@ -692,7 +711,7 @@ Opens `http://localhost:3333` with:
 | **Thinking reduction** | ✗ | ✓ CRP v2 (30-60% fewer thinking tokens via Cursor Rules) |
 | **Stats & Graphs** | ✓ `rtk gain` (SQLite + ASCII graph) | ✓ Visual terminal dashboard (ANSI colors, Unicode bars, sparklines, USD) + `--graph` + `--daily` + `--json` + web dashboard |
 | **Auto-setup** | ✓ `rtk init` | ✓ `lean-ctx init` |
-| **Editors** | Claude Code, OpenCode, Gemini CLI | **All MCP editors (Cursor, Copilot, Claude Code, Windsurf, Codex, Antigravity, OpenCode) + shell hook (OpenClaw, any terminal)** |
+| **Editors** | Claude Code, OpenCode, Gemini CLI | **All MCP editors (Cursor, Copilot, Claude Code, Windsurf, Zed, Codex, Antigravity, OpenCode) + shell hook (OpenClaw, any terminal)** |
 | **Config file** | TOML | ✓ TOML (`~/.lean-ctx/config.toml`) |
 | **History analysis** | ✗ | ✓ `lean-ctx discover` — find uncompressed commands |
 | **Homebrew** | ✓ | ✓ `brew tap yvgude/lean-ctx && brew install lean-ctx` |

@@ -1,4 +1,6 @@
 use std::path::Path;
+
+use ignore::WalkBuilder;
 use walkdir::WalkDir;
 
 use crate::core::protocol;
@@ -24,29 +26,27 @@ fn generate_compact_tree(root: &Path, max_depth: usize, show_hidden: bool) -> St
     let mut lines = Vec::new();
     let mut entries: Vec<(usize, String, bool, usize)> = Vec::new();
 
-    for entry in WalkDir::new(root)
-        .min_depth(1)
-        .max_depth(max_depth)
-        .sort_by_file_name()
-    {
-        let entry = match entry {
-            Ok(e) => e,
-            Err(_) => continue,
-        };
+    let walker = WalkBuilder::new(root)
+        .hidden(!show_hidden)
+        .git_ignore(true)
+        .git_global(true)
+        .git_exclude(true)
+        .max_depth(Some(max_depth))
+        .sort_by_file_name(|a, b| a.cmp(b))
+        .build();
+
+    for entry in walker.filter_map(|e| e.ok()) {
+        if entry.depth() == 0 {
+            continue;
+        }
 
         let name = entry.file_name().to_string_lossy().to_string();
-        if !show_hidden && name.starts_with('.') {
-            continue;
-        }
-        if is_ignored(&name) {
-            continue;
-        }
 
         let depth = entry.depth();
-        let is_dir = entry.file_type().is_dir();
+        let is_dir = entry.file_type().is_some_and(|ft| ft.is_dir());
 
         let file_count = if is_dir {
-            count_files_in_dir(entry.path(), show_hidden)
+            count_files_in_dir(entry.path())
         } else {
             0
         };
@@ -69,20 +69,21 @@ fn generate_compact_tree(root: &Path, max_depth: usize, show_hidden: bool) -> St
 fn generate_raw_tree(root: &Path) -> String {
     let mut lines = Vec::new();
 
-    for e in WalkDir::new(root)
+    for entry in WalkDir::new(root)
         .min_depth(1)
         .sort_by_file_name()
         .into_iter()
         .flatten()
     {
-        let name = e.file_name().to_string_lossy().to_string();
-        if is_ignored(&name) {
+        let name = entry.file_name().to_string_lossy().to_string();
+        if is_always_ignored(&name) {
             continue;
         }
         lines.push(
-            e.path()
+            entry
+                .path()
                 .strip_prefix(root)
-                .unwrap_or(e.path())
+                .unwrap_or(entry.path())
                 .to_string_lossy()
                 .to_string(),
         );
@@ -91,19 +92,17 @@ fn generate_raw_tree(root: &Path) -> String {
     lines.join("\n")
 }
 
-fn count_files_in_dir(dir: &Path, show_hidden: bool) -> usize {
-    WalkDir::new(dir)
-        .min_depth(1)
-        .into_iter()
+fn count_files_in_dir(dir: &Path) -> usize {
+    WalkBuilder::new(dir)
+        .hidden(true)
+        .git_ignore(true)
+        .build()
         .filter_map(|e| e.ok())
-        .filter(|e| {
-            let name = e.file_name().to_string_lossy();
-            !e.file_type().is_dir() && (show_hidden || !name.starts_with('.')) && !is_ignored(&name)
-        })
+        .filter(|e| e.file_type().is_some_and(|ft| ft.is_file()))
         .count()
 }
 
-fn is_ignored(name: &str) -> bool {
+fn is_always_ignored(name: &str) -> bool {
     matches!(
         name,
         "node_modules"

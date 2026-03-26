@@ -15,7 +15,7 @@ impl ServerHandler for LeanCtxServer {
         let instructions = build_instructions(self.crp_mode);
 
         InitializeResult::new(capabilities)
-            .with_server_info(Implementation::new("lean-ctx", "2.3.0"))
+            .with_server_info(Implementation::new("lean-ctx", "2.3.1"))
             .with_instructions(instructions)
     }
 
@@ -103,14 +103,16 @@ impl ServerHandler for LeanCtxServer {
                     tool_def(
                         "ctx_search",
                         "REPLACES built-in Grep tool — ALWAYS use this instead of Grep. \
-                        Search files for a regex pattern. Returns only matching lines with compact context.",
+                        Search files for a regex pattern. Respects .gitignore by default. \
+                        Returns only matching lines with compact context.",
                         json!({
                             "type": "object",
                             "properties": {
                                 "pattern": { "type": "string", "description": "Regex pattern" },
                                 "path": { "type": "string", "description": "Directory to search" },
                                 "ext": { "type": "string", "description": "File extension filter" },
-                                "max_results": { "type": "integer", "description": "Max results (default: 20)" }
+                                "max_results": { "type": "integer", "description": "Max results (default: 20)" },
+                                "ignore_gitignore": { "type": "boolean", "description": "Set true to scan ALL files including .gitignore'd paths (default: false)" }
                             },
                             "required": ["pattern"]
                         }),
@@ -468,12 +470,14 @@ impl ServerHandler for LeanCtxServer {
                 let path = get_str(args, "path").unwrap_or_else(|| ".".to_string());
                 let ext = get_str(args, "ext");
                 let max = get_int(args, "max_results").unwrap_or(20) as usize;
+                let no_gitignore = get_bool(args, "ignore_gitignore").unwrap_or(false);
                 let result = crate::tools::ctx_search::handle(
                     &pattern,
                     &path,
                     ext.as_deref(),
                     max,
                     self.crp_mode,
+                    !no_gitignore,
                 );
                 let sent = crate::core::tokens::count_tokens(&result);
                 self.record_call("ctx_search", sent, 0, None).await;

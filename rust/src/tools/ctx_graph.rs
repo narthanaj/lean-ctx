@@ -166,26 +166,20 @@ pub fn handle(action: &str, path: Option<&str>, root: &str) -> String {
     match action {
         "build" => {
             let mut graph = ProjectGraph::new();
-            let walker = walkdir::WalkDir::new(root).max_depth(8);
+            let walker = ignore::WalkBuilder::new(root)
+                .hidden(true)
+                .git_ignore(true)
+                .git_global(true)
+                .git_exclude(true)
+                .max_depth(Some(8))
+                .build();
             let mut file_count = 0usize;
 
-            for entry in walker.into_iter().filter_map(|e| e.ok()) {
-                if !entry.file_type().is_file() {
+            for entry in walker.filter_map(|e| e.ok()) {
+                if !entry.file_type().is_some_and(|ft| ft.is_file()) {
                     continue;
                 }
                 let file_path = entry.path().to_string_lossy().to_string();
-                let path_lower = file_path.to_lowercase();
-
-                if path_lower.contains("node_modules")
-                    || path_lower.contains("target/debug")
-                    || path_lower.contains("target/release")
-                    || path_lower.contains(".git/")
-                    || path_lower.contains("dist/")
-                    || path_lower.contains("build/")
-                    || path_lower.contains("vendor/")
-                {
-                    continue;
-                }
 
                 let ext = Path::new(&file_path)
                     .extension()

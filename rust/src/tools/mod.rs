@@ -169,6 +169,10 @@ impl LeanCtxServer {
         if session.should_save() {
             let _ = session.save();
         }
+        drop(calls);
+        drop(session);
+
+        self.write_mcp_live_stats().await;
     }
 
     pub fn increment_and_check(&self) -> bool {

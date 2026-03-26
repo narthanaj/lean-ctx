@@ -2,6 +2,18 @@
 
 All notable changes to lean-ctx are documented here.
 
+## [2.3.1] — 2026-03-26
+
+### Fixed
+
+- **Dashboard live update** — Added `Cache-Control: no-cache, no-store, must-revalidate` headers to API responses, preventing browser caching of stale data. `mcp-live.json` now updates on every MCP tool call instead of only during auto-checkpoint (every 15 calls)
+- **ctx_search respects .gitignore** — Replaced `walkdir` with the `ignore` crate (same library ripgrep uses) in `ctx_search`, `ctx_tree`, `ctx_graph`, and `ctx_intent`. Next.js projects no longer scan 50k+ files in `node_modules`/`.next`. Added `ignore_gitignore` parameter to `ctx_search` for opt-out ([#6](https://github.com/yvgude/lean-ctx/issues/6))
+
+### Added
+
+- **Zed editor configuration** — Added Zed MCP setup instructions to README with `context_servers` configuration example ([#5](https://github.com/yvgude/lean-ctx/issues/5))
+- **`ignore` crate dependency** — Provides automatic `.gitignore`, `.git/info/exclude`, and global gitignore support for all file-walking operations
+
 ## [2.3.0] — 2026-03-26
 
 ### Scientific Compression Engine (10 Information-Theoretic Optimizations)
