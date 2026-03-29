@@ -120,3 +120,46 @@ pub fn contribute(entries: &[serde_json::Value]) -> Result<String, String> {
         .unwrap_or("Contributed")
         .to_string())
 }
+
+pub fn push_knowledge(entries: &[serde_json::Value]) -> Result<String, String> {
+    let api_key = load_api_key().ok_or("Not logged in. Run: lean-ctx login")?;
+    let url = format!("{}/api/sync/knowledge", api_url());
+
+    let body = serde_json::json!({ "entries": entries });
+
+    let resp = ureq::post(&url)
+        .header("Authorization", &format!("Bearer {api_key}"))
+        .header("Content-Type", "application/json")
+        .send(serde_json::to_vec(&body).unwrap().as_slice())
+        .map_err(|e| format!("Push failed: {e}"))?;
+
+    let resp_body = resp
+        .into_body()
+        .read_to_string()
+        .map_err(|e| format!("Failed to read response: {e}"))?;
+
+    let json: serde_json::Value =
+        serde_json::from_str(&resp_body).map_err(|e| format!("Invalid JSON: {e}"))?;
+
+    Ok(format!("{} entries synced", json["synced"].as_i64().unwrap_or(0)))
+}
+
+pub fn pull_knowledge() -> Result<Vec<serde_json::Value>, String> {
+    let api_key = load_api_key().ok_or("Not logged in. Run: lean-ctx login")?;
+    let url = format!("{}/api/sync/knowledge", api_url());
+
+    let resp = ureq::get(&url)
+        .header("Authorization", &format!("Bearer {api_key}"))
+        .call()
+        .map_err(|e| format!("Pull failed: {e}"))?;
+
+    let resp_body = resp
+        .into_body()
+        .read_to_string()
+        .map_err(|e| format!("Failed to read response: {e}"))?;
+
+    let entries: Vec<serde_json::Value> =
+        serde_json::from_str(&resp_body).map_err(|e| format!("Invalid JSON: {e}"))?;
+
+    Ok(entries)
+}

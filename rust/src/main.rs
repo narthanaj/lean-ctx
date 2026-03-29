@@ -141,6 +141,10 @@ fn main() {
                 cmd_contribute();
                 return;
             }
+            "team" => {
+                cmd_team(&rest);
+                return;
+            }
             "--version" | "-V" => {
                 println!("lean-ctx 2.8.2");
                 return;
@@ -327,6 +331,8 @@ CLOUD:
     login <email>                  Register/login to LeanCTX Cloud
     sync                           Upload local stats to cloud dashboard
     contribute                     Share anonymized compression data
+    team push                      Push local knowledge to team cloud
+    team pull                      Pull team knowledge from cloud
 
 WEBSITE: https://leanctx.com
 GITHUB:  https://github.com/yvgude/lean-ctx
@@ -440,6 +446,94 @@ fn cmd_contribute() {
         Err(e) => {
             eprintln!("Contribute failed: {e}");
             std::process::exit(1);
+        }
+    }
+}
+
+fn cmd_team(args: &[String]) {
+    let action = args.first().map(|s| s.as_str()).unwrap_or("help");
+
+    match action {
+        "push" => {
+            if !cloud_client::is_logged_in() {
+                eprintln!("Not logged in. Run: lean-ctx login <email>");
+                std::process::exit(1);
+            }
+            let knowledge_dir = dirs::home_dir()
+                .unwrap_or_default()
+                .join(".lean-ctx")
+                .join("knowledge");
+            if !knowledge_dir.exists() {
+                println!("No local knowledge to push.");
+                return;
+            }
+
+            let mut entries = Vec::new();
+            if let Ok(files) = std::fs::read_dir(&knowledge_dir) {
+                for entry in files.flatten() {
+                    if entry.path().extension().and_then(|e| e.to_str()) == Some("json") {
+                        if let Ok(content) = std::fs::read_to_string(entry.path()) {
+                            if let Ok(json) = serde_json::from_str::<serde_json::Value>(&content) {
+                                let category = json["category"].as_str().unwrap_or("general").to_string();
+                                let key = json["key"].as_str().unwrap_or("").to_string();
+                                let value = json["value"].as_str().unwrap_or("").to_string();
+                                if !key.is_empty() {
+                                    entries.push(serde_json::json!({
+                                        "category": category,
+                                        "key": key,
+                                        "value": value,
+                                        "updated_by": "",
+                                        "updated_at": "",
+                                    }));
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            if entries.is_empty() {
+                println!("No knowledge entries to push.");
+                return;
+            }
+
+            match cloud_client::push_knowledge(&entries) {
+                Ok(msg) => println!("{msg}"),
+                Err(e) => {
+                    eprintln!("Push failed: {e}");
+                    std::process::exit(1);
+                }
+            }
+        }
+        "pull" => {
+            if !cloud_client::is_logged_in() {
+                eprintln!("Not logged in. Run: lean-ctx login <email>");
+                std::process::exit(1);
+            }
+            match cloud_client::pull_knowledge() {
+                Ok(entries) => {
+                    if entries.is_empty() {
+                        println!("No team knowledge found.");
+                        return;
+                    }
+                    println!("{} team knowledge entries:", entries.len());
+                    for e in &entries {
+                        let cat = e["category"].as_str().unwrap_or("?");
+                        let key = e["key"].as_str().unwrap_or("?");
+                        let by = e["updated_by"].as_str().unwrap_or("?");
+                        println!("  [{cat}] {key} (by {by})");
+                    }
+                }
+                Err(e) => {
+                    eprintln!("Pull failed: {e}");
+                    std::process::exit(1);
+                }
+            }
+        }
+        _ => {
+            println!("Usage: lean-ctx team <push|pull>");
+            println!("  push — Upload local knowledge to team cloud");
+            println!("  pull — Download team knowledge from cloud");
         }
     }
 }
