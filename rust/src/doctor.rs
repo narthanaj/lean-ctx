@@ -290,6 +290,27 @@ fn mcp_config_locations(home: &std::path::Path) -> Vec<McpLocation> {
         });
     }
 
+    locations.push(McpLocation {
+        name: "Qwen Code",
+        display: "~/.qwen/mcp.json",
+        path: home.join(".qwen").join("mcp.json"),
+    });
+    locations.push(McpLocation {
+        name: "Trae",
+        display: "~/.trae/mcp.json",
+        path: home.join(".trae").join("mcp.json"),
+    });
+    locations.push(McpLocation {
+        name: "Amazon Q",
+        display: "~/.aws/amazonq/mcp.json",
+        path: home.join(".aws").join("amazonq").join("mcp.json"),
+    });
+    locations.push(McpLocation {
+        name: "JetBrains",
+        display: "~/.jb-mcp.json",
+        path: home.join(".jb-mcp.json"),
+    });
+
     {
         #[cfg(unix)]
         let opencode_cfg = home.join(".config").join("opencode").join("opencode.json");

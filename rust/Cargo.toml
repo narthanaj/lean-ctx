@@ -1,8 +1,8 @@
 [package]
 name = "lean-ctx"
-version = "2.8.0"
+version = "2.8.1"
 edition = "2021"
-description = "Context Intelligence Engine with CCP. 24 MCP tools, 90+ compression patterns, cross-session memory (CCP), persistent AI knowledge, multi-agent sharing, LITM-aware positioning. Reduces LLM token consumption by up to 99%."
+description = "Context Intelligence Engine with CCP. 24 MCP tools, 90+ compression patterns, cross-session memory (CCP), persistent AI knowledge, multi-agent sharing, LITM-aware positioning. Supports 18+ AI tools. Reduces LLM token consumption by up to 99%."
 license = "MIT"
 repository = "https://github.com/yvgude/lean-ctx"
 homepage = "https://leanctx.com"

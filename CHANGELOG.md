@@ -2,6 +2,24 @@
 
 All notable changes to lean-ctx are documented here.
 
+## [2.8.1] — 2026-03-29
+
+### Added
+
+- **Global search (Pagefind)** — Website navigation with Cmd+K shortcut
+- **CLI Reference docs** — `/docs/cli-reference` with all commands, flags, and examples
+- **Analytics & Dashboards docs** — `/docs/analytics` with gain, wrapped, and dashboard guide
+- **Editor support** — Qwen Code, Trae, Amazon Q Developer, JetBrains IDEs (`setup.rs`, `hooks.rs`, `uninstall.rs`, `doctor.rs`)
+- **Cline and Roo Code** — Separate auto-detected setup targets
+
+### Changed
+
+- **Compatibility page and landing page** — Updated with all 18 supported AI tools
+- **Getting started prompt generator** — New editors
+- **Docs navigation** — CLI Reference and Analytics links
+
+---
+
 ## [2.8.0] — 2026-03-29
 
 ### Added

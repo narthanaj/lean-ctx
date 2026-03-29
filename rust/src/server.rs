@@ -15,7 +15,7 @@ impl ServerHandler for LeanCtxServer {
         let instructions = build_instructions(self.crp_mode);
 
         InitializeResult::new(capabilities)
-            .with_server_info(Implementation::new("lean-ctx", "2.8.0"))
+            .with_server_info(Implementation::new("lean-ctx", "2.8.1"))
             .with_instructions(instructions)
     }
 

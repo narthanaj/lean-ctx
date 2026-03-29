@@ -85,6 +85,10 @@ fn remove_mcp_configs(home: &Path) -> bool {
         ),
         ("Codex CLI", home.join(".codex/config.toml")),
         ("OpenCode", home.join(".config/opencode/opencode.json")),
+        ("Qwen Code", home.join(".qwen/mcp.json")),
+        ("Trae", home.join(".trae/mcp.json")),
+        ("Amazon Q Developer", home.join(".aws/amazonq/mcp.json")),
+        ("JetBrains IDEs", home.join(".jb-mcp.json")),
     ];
 
     let mut removed = false;

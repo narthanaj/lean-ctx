@@ -130,7 +130,7 @@ fn main() {
                 return;
             }
             "--version" | "-V" => {
-                println!("lean-ctx 2.8.0");
+                println!("lean-ctx 2.8.1");
                 return;
             }
             "--help" | "-h" => {
@@ -215,7 +215,7 @@ fn shell_quote(s: &str) -> String {
 
 fn print_help() {
     println!(
-        "lean-ctx 2.7.1 — The Cognitive Filter for AI Engineering
+        "lean-ctx 2.8.1 — The Cognitive Filter for AI Engineering
 
 90+ compression patterns | 24 MCP tools | Context Continuity Protocol
 
@@ -240,7 +240,7 @@ COMMANDS:
     cheatsheet                     Command cheat sheet & workflow quick reference
     setup                          One-command setup: shell + editor + verify
     init [--global]                Install shell aliases (zsh/bash/fish/PowerShell)
-    init --agent pi                Install Pi Coding Agent extension (pi-lean-ctx)
+    init --agent <name>            Configure MCP for specific editor/agent
     read <file> [-m mode]          Read file with compression
     diff <file1> <file2>           Compressed file diff
     grep <pattern> [path]          Search with compressed output

@@ -262,6 +262,48 @@ fn build_targets(home: &std::path::Path, _binary: &str) -> Vec<EditorTarget> {
             detect_path: home.join(".config/opencode"),
             config_type: ConfigType::OpenCode,
         },
+        EditorTarget {
+            name: "Qwen Code",
+            agent_key: "qwen",
+            config_path: home.join(".qwen/mcp.json"),
+            detect_path: home.join(".qwen"),
+            config_type: ConfigType::McpJson,
+        },
+        EditorTarget {
+            name: "Trae",
+            agent_key: "trae",
+            config_path: home.join(".trae/mcp.json"),
+            detect_path: home.join(".trae"),
+            config_type: ConfigType::McpJson,
+        },
+        EditorTarget {
+            name: "Amazon Q Developer",
+            agent_key: "amazonq",
+            config_path: home.join(".aws/amazonq/mcp.json"),
+            detect_path: home.join(".aws/amazonq"),
+            config_type: ConfigType::McpJson,
+        },
+        EditorTarget {
+            name: "JetBrains IDEs",
+            agent_key: "jetbrains",
+            config_path: home.join(".jb-mcp.json"),
+            detect_path: detect_jetbrains_path(home),
+            config_type: ConfigType::McpJson,
+        },
+        EditorTarget {
+            name: "Cline",
+            agent_key: "cline",
+            config_path: cline_mcp_path(),
+            detect_path: detect_cline_path(),
+            config_type: ConfigType::McpJson,
+        },
+        EditorTarget {
+            name: "Roo Code",
+            agent_key: "roo",
+            config_path: roo_mcp_path(),
+            detect_path: detect_roo_path(),
+            config_type: ConfigType::McpJson,
+        },
     ]
 }
 
@@ -556,4 +598,108 @@ fn vscode_mcp_path() -> PathBuf {
     } else {
         PathBuf::from("/nonexistent")
     }
+}
+
+fn detect_jetbrains_path(home: &std::path::Path) -> PathBuf {
+    #[cfg(target_os = "macos")]
+    {
+        let lib = home.join("Library/Application Support/JetBrains");
+        if lib.exists() {
+            return lib;
+        }
+    }
+    #[cfg(target_os = "linux")]
+    {
+        let cfg = home.join(".config/JetBrains");
+        if cfg.exists() {
+            return cfg;
+        }
+    }
+    if home.join(".jb-mcp.json").exists() {
+        return home.join(".jb-mcp.json");
+    }
+    PathBuf::from("/nonexistent")
+}
+
+fn cline_mcp_path() -> PathBuf {
+    if let Some(home) = dirs::home_dir() {
+        #[cfg(target_os = "macos")]
+        {
+            return home.join("Library/Application Support/Code/User/globalStorage/saoudrizwan.claude-dev/settings/cline_mcp_settings.json");
+        }
+        #[cfg(target_os = "linux")]
+        {
+            return home.join(".config/Code/User/globalStorage/saoudrizwan.claude-dev/settings/cline_mcp_settings.json");
+        }
+        #[cfg(target_os = "windows")]
+        {
+            if let Ok(appdata) = std::env::var("APPDATA") {
+                return PathBuf::from(appdata).join("Code/User/globalStorage/saoudrizwan.claude-dev/settings/cline_mcp_settings.json");
+            }
+        }
+    }
+    PathBuf::from("/nonexistent")
+}
+
+fn detect_cline_path() -> PathBuf {
+    if let Some(home) = dirs::home_dir() {
+        #[cfg(target_os = "macos")]
+        {
+            let p = home
+                .join("Library/Application Support/Code/User/globalStorage/saoudrizwan.claude-dev");
+            if p.exists() {
+                return p;
+            }
+        }
+        #[cfg(target_os = "linux")]
+        {
+            let p = home.join(".config/Code/User/globalStorage/saoudrizwan.claude-dev");
+            if p.exists() {
+                return p;
+            }
+        }
+    }
+    PathBuf::from("/nonexistent")
+}
+
+fn roo_mcp_path() -> PathBuf {
+    if let Some(home) = dirs::home_dir() {
+        #[cfg(target_os = "macos")]
+        {
+            return home.join("Library/Application Support/Code/User/globalStorage/rooveterinaryinc.roo-cline/settings/cline_mcp_settings.json");
+        }
+        #[cfg(target_os = "linux")]
+        {
+            return home.join(".config/Code/User/globalStorage/rooveterinaryinc.roo-cline/settings/cline_mcp_settings.json");
+        }
+        #[cfg(target_os = "windows")]
+        {
+            if let Ok(appdata) = std::env::var("APPDATA") {
+                return PathBuf::from(appdata).join("Code/User/globalStorage/rooveterinaryinc.roo-cline/settings/cline_mcp_settings.json");
+            }
+        }
+    }
+    PathBuf::from("/nonexistent")
+}
+
+fn detect_roo_path() -> PathBuf {
+    if let Some(home) = dirs::home_dir() {
+        #[cfg(target_os = "macos")]
+        {
+            let p = home.join(
+                "Library/Application Support/Code/User/globalStorage/rooveterinaryinc.roo-cline",
+            );
+            if p.exists() {
+                return p;
+            }
+        }
+        #[cfg(target_os = "linux")]
+        {
+            let p = home.join(".config/Code/User/globalStorage/rooveterinaryinc.roo-cline");
+            if p.exists() {
+                return p;
+            }
+        }
+    }
+    PathBuf::from("/nonexistent")
 }

@@ -31,9 +31,31 @@ pub fn install_agent_hook(agent: &str, global: bool) {
         "cline" | "roo" => install_cline_rules(global),
         "copilot" => install_copilot_hook(global),
         "pi" => install_pi_hook(global),
+        "qwen" => install_mcp_json_agent(
+            "Qwen Code",
+            "~/.qwen/mcp.json",
+            &dirs::home_dir().unwrap_or_default().join(".qwen/mcp.json"),
+        ),
+        "trae" => install_mcp_json_agent(
+            "Trae",
+            "~/.trae/mcp.json",
+            &dirs::home_dir().unwrap_or_default().join(".trae/mcp.json"),
+        ),
+        "amazonq" => install_mcp_json_agent(
+            "Amazon Q Developer",
+            "~/.aws/amazonq/mcp.json",
+            &dirs::home_dir()
+                .unwrap_or_default()
+                .join(".aws/amazonq/mcp.json"),
+        ),
+        "jetbrains" => install_mcp_json_agent(
+            "JetBrains IDEs",
+            "~/.jb-mcp.json",
+            &dirs::home_dir().unwrap_or_default().join(".jb-mcp.json"),
+        ),
         _ => {
             eprintln!("Unknown agent: {agent}");
-            eprintln!("  Supported: claude, cursor, gemini, codex, windsurf, cline, copilot, pi");
+            eprintln!("  Supported: claude, cursor, gemini, codex, windsurf, cline, roo, copilot, pi, qwen, trae, amazonq, jetbrains");
             std::process::exit(1);
         }
     }
@@ -580,6 +602,56 @@ fn make_executable(path: &PathBuf) {
 
 #[cfg(not(unix))]
 fn make_executable(_path: &PathBuf) {}
+
+fn install_mcp_json_agent(name: &str, display_path: &str, config_path: &std::path::Path) {
+    let binary = resolve_binary_path();
+
+    if let Some(parent) = config_path.parent() {
+        let _ = std::fs::create_dir_all(parent);
+    }
+
+    if config_path.exists() {
+        let content = std::fs::read_to_string(config_path).unwrap_or_default();
+        if content.contains("lean-ctx") {
+            println!("{name} MCP already configured at {display_path}");
+            return;
+        }
+
+        if let Ok(mut json) = serde_json::from_str::<serde_json::Value>(&content) {
+            if let Some(obj) = json.as_object_mut() {
+                let servers = obj
+                    .entry("mcpServers")
+                    .or_insert_with(|| serde_json::json!({}));
+                if let Some(servers_obj) = servers.as_object_mut() {
+                    servers_obj.insert(
+                        "lean-ctx".to_string(),
+                        serde_json::json!({ "command": binary }),
+                    );
+                }
+                if let Ok(formatted) = serde_json::to_string_pretty(&json) {
+                    let _ = std::fs::write(config_path, formatted);
+                    println!("  \x1b[32m✓\x1b[0m {name} MCP configured at {display_path}");
+                    return;
+                }
+            }
+        }
+    }
+
+    let content = serde_json::to_string_pretty(&serde_json::json!({
+        "mcpServers": {
+            "lean-ctx": {
+                "command": binary
+            }
+        }
+    }));
+
+    if let Ok(json_str) = content {
+        let _ = std::fs::write(config_path, json_str);
+        println!("  \x1b[32m✓\x1b[0m {name} MCP configured at {display_path}");
+    } else {
+        eprintln!("  \x1b[31m✗\x1b[0m Failed to configure {name}");
+    }
+}
 
 #[cfg(test)]
 mod tests {
