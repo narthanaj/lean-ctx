@@ -193,13 +193,29 @@ pub struct GainSummary {
 
 pub fn load_stats() -> GainSummary {
     let store = load();
-    let saved = store
+    let cm = CostModel::default();
+    let input_saved = store
         .total_input_tokens
         .saturating_sub(store.total_output_tokens);
+    let output_saved =
+        store.total_commands * (cm.avg_verbose_output_per_call - cm.avg_concise_output_per_call);
     GainSummary {
-        total_saved: saved,
+        total_saved: input_saved + output_saved,
         total_calls: store.total_commands,
     }
+}
+
+fn cmd_total_saved(s: &CommandStats, cm: &CostModel) -> u64 {
+    let input_saved = s.input_tokens.saturating_sub(s.output_tokens);
+    let output_saved = s.count * (cm.avg_verbose_output_per_call - cm.avg_concise_output_per_call);
+    input_saved + output_saved
+}
+
+fn day_total_saved(d: &DayStats, cm: &CostModel) -> u64 {
+    let input_saved = d.input_tokens.saturating_sub(d.output_tokens);
+    let output_saved =
+        d.commands * (cm.avg_verbose_output_per_call - cm.avg_concise_output_per_call);
+    input_saved + output_saved
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -715,15 +731,17 @@ pub fn format_gain() -> String {
         return format!("{DIM}No commands recorded yet.{RST} Use {CYAN}lean-ctx -c \"command\"{RST} to start tracking.");
     }
 
-    let saved = store
+    let input_saved = store
         .total_input_tokens
         .saturating_sub(store.total_output_tokens);
     let pct = if store.total_input_tokens > 0 {
-        saved as f64 / store.total_input_tokens as f64 * 100.0
+        input_saved as f64 / store.total_input_tokens as f64 * 100.0
     } else {
         0.0
     };
-    let cost = CostModel::default().calculate(&store);
+    let cost_model = CostModel::default();
+    let cost = cost_model.calculate(&store);
+    let total_saved = input_saved + cost.output_tokens_saved;
     let days_active = store.daily.len();
 
     o.push(String::new());
@@ -736,7 +754,7 @@ pub fn format_gain() -> String {
 
     o.push(format!(
         "  {BOLD}{GREEN} {:<12}{RST}  {BOLD}{CYAN} {:<12}{RST}  {BOLD}{YELLOW} {:<10}{RST}  {BOLD}{MAGENTA} {:<10}{RST}",
-        format_big(saved),
+        format_big(total_saved),
         format!("{pct:.1}%"),
         format_num(store.total_commands),
         format_usd(cost.total_saved),
@@ -777,12 +795,18 @@ pub fn format_gain() -> String {
     ));
     o.push(String::new());
 
+    o.push(format!(
+        "  {DIM}{} input tokens compressed · ~{} output tokens reduced via CEP/TDD{RST}",
+        format_num(input_saved),
+        format_big(cost.output_tokens_saved),
+    ));
+
     if let (Some(first), Some(_last)) = (&store.first_use, &store.last_use) {
         let first_short = first.get(..10).unwrap_or(first);
         let daily_savings: Vec<u64> = store
             .daily
             .iter()
-            .map(|d| d.input_tokens.saturating_sub(d.output_tokens))
+            .map(|d| day_total_saved(d, &cost_model))
             .collect();
         let spark = sparkline(&daily_savings);
         o.push(format!(
@@ -798,21 +822,22 @@ pub fn format_gain() -> String {
 
         let mut sorted: Vec<_> = store.commands.iter().collect();
         sorted.sort_by(|a, b| {
-            let sa = a.1.input_tokens.saturating_sub(a.1.output_tokens);
-            let sb = b.1.input_tokens.saturating_sub(b.1.output_tokens);
+            let sa = cmd_total_saved(a.1, &cost_model);
+            let sb = cmd_total_saved(b.1, &cost_model);
             sb.cmp(&sa)
         });
 
         let max_cmd_saved = sorted
             .first()
-            .map(|(_, s)| s.input_tokens.saturating_sub(s.output_tokens))
+            .map(|(_, s)| cmd_total_saved(s, &cost_model))
             .unwrap_or(1)
             .max(1);
 
         for (cmd, stats) in sorted.iter().take(12) {
-            let cmd_saved = stats.input_tokens.saturating_sub(stats.output_tokens);
+            let cmd_saved = cmd_total_saved(stats, &cost_model);
+            let cmd_input_saved = stats.input_tokens.saturating_sub(stats.output_tokens);
             let cmd_pct = if stats.input_tokens > 0 {
-                cmd_saved as f64 / stats.input_tokens as f64 * 100.0
+                cmd_input_saved as f64 / stats.input_tokens as f64 * 100.0
             } else {
                 0.0
             };
@@ -842,9 +867,10 @@ pub fn format_gain() -> String {
 
         let recent: Vec<_> = store.daily.iter().rev().take(7).collect();
         for day in recent.iter().rev() {
-            let day_saved = day.input_tokens.saturating_sub(day.output_tokens);
+            let day_saved = day_total_saved(day, &cost_model);
+            let input_saved = day.input_tokens.saturating_sub(day.output_tokens);
             let day_pct = if day.input_tokens > 0 {
-                day_saved as f64 / day.input_tokens as f64 * 100.0
+                input_saved as f64 / day.input_tokens as f64 * 100.0
             } else {
                 0.0
             };
@@ -861,7 +887,7 @@ pub fn format_gain() -> String {
     o.push(String::new());
     o.push(format!("  {DIM}{ln56}{RST}"));
     o.push(format!(
-        "  {DIM}lean-ctx v2.9.3  |  leanctx.com  |  lean-ctx dashboard{RST}"
+        "  {DIM}lean-ctx v2.9.4  |  leanctx.com  |  lean-ctx dashboard{RST}"
     ));
     if !crate::cloud_client::check_pro() {
         o.push(format!(
@@ -906,6 +932,7 @@ pub fn format_gain_graph() -> String {
         );
     }
 
+    let cm = CostModel::default();
     let days: Vec<_> = store
         .daily
         .iter()
@@ -916,10 +943,7 @@ pub fn format_gain_graph() -> String {
         .rev()
         .collect();
 
-    let savings: Vec<u64> = days
-        .iter()
-        .map(|d| d.input_tokens.saturating_sub(d.output_tokens))
-        .collect();
+    let savings: Vec<u64> = days.iter().map(|d| day_total_saved(d, &cm)).collect();
 
     let max_saved = *savings.iter().max().unwrap_or(&1);
     let max_saved = max_saved.max(1);
@@ -944,8 +968,9 @@ pub fn format_gain_graph() -> String {
         let ratio = saved as f64 / max_saved as f64;
         let bar = bar_block(ratio, bar_width);
 
+        let input_saved = day.input_tokens.saturating_sub(day.output_tokens);
         let pct = if day.input_tokens > 0 {
-            saved as f64 / day.input_tokens as f64 * 100.0
+            input_saved as f64 / day.input_tokens as f64 * 100.0
         } else {
             0.0
         };
@@ -1007,10 +1032,12 @@ pub fn format_gain_daily() -> String {
         .cloned()
         .collect();
 
+    let cm = CostModel::default();
     for day in &days {
-        let saved = day.input_tokens.saturating_sub(day.output_tokens);
+        let saved = day_total_saved(day, &cm);
+        let input_saved = day.input_tokens.saturating_sub(day.output_tokens);
         let pct = if day.input_tokens > 0 {
-            saved as f64 / day.input_tokens as f64 * 100.0
+            input_saved as f64 / day.input_tokens as f64 * 100.0
         } else {
             0.0
         };
@@ -1028,13 +1055,14 @@ pub fn format_gain_daily() -> String {
     }
 
     let total_input: u64 = store.daily.iter().map(|d| d.input_tokens).sum();
-    let total_saved: u64 = store
-        .daily
-        .iter()
-        .map(|d| d.input_tokens.saturating_sub(d.output_tokens))
-        .sum();
+    let total_saved: u64 = store.daily.iter().map(|d| day_total_saved(d, &cm)).sum();
     let total_pct = if total_input > 0 {
-        total_saved as f64 / total_input as f64 * 100.0
+        let input_saved: u64 = store
+            .daily
+            .iter()
+            .map(|d| d.input_tokens.saturating_sub(d.output_tokens))
+            .sum();
+        input_saved as f64 / total_input as f64 * 100.0
     } else {
         0.0
     };
@@ -1052,10 +1080,7 @@ pub fn format_gain_daily() -> String {
     ));
     o.push(format!("  {DIM}└{lnw}┘{RST}"));
 
-    let daily_savings: Vec<u64> = days
-        .iter()
-        .map(|d| d.input_tokens.saturating_sub(d.output_tokens))
-        .collect();
+    let daily_savings: Vec<u64> = days.iter().map(|d| day_total_saved(d, &cm)).collect();
     let spark = sparkline(&daily_savings);
     o.push(format!("  {DIM}Trend:{RST} {GREEN}{spark}{RST}"));
     o.push(String::new());

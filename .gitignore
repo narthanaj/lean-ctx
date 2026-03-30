@@ -27,3 +27,4 @@ cloud/
 docker-compose.yml
 DEVELOPMENT.md
 Makefile.deploy
+PROJECT.md

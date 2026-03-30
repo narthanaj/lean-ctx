@@ -2,6 +2,17 @@
 
 All notable changes to lean-ctx are documented here.
 
+## [2.9.4] — 2026-03-30
+
+### Fixed
+
+- **Dashboard vs CLI token mismatch** — `lean-ctx gain`, `lean-ctx gain --daily`, and `lean-ctx gain --graph` now include both input and output token savings (CEP/TDD estimate) in their totals, consistent with the web dashboard. Previously, the CLI only showed input compression savings while the dashboard included output savings, causing confusing discrepancies.
+
+### Changed
+
+- **Consistent savings calculation** — All views (CLI gain, daily table, graph, web dashboard) now use the same formula: `total_saved = input_compressed + commands × 330` (output reduction from 450→120 tokens per call via CEP/TDD protocols).
+- **Comprehensive project documentation** — Added detailed `PROJECT.md` with complete architecture, all 24 MCP tools, compression pipeline data flow, algorithm descriptions, shell pattern routing, and storage locations.
+
 ## [2.9.3] — 2026-03-30
 
 ### Fixed
