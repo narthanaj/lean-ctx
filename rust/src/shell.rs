@@ -1,4 +1,4 @@
-use std::io::{self, BufRead, Write};
+use std::io::{self, BufRead, IsTerminal, Write};
 use std::process::{Command, Stdio};
 
 use crate::core::config;
@@ -52,7 +52,9 @@ pub fn exec(command: &str) -> i32 {
     let cfg = config::Config::load();
     let input_tokens = count_tokens(&full_output);
 
-    if is_excluded_command(command, &cfg.excluded_commands) {
+    let piped = !io::stdout().is_terminal();
+
+    if piped || is_excluded_command(command, &cfg.excluded_commands) {
         if !full_output.is_empty() {
             let _ = io::stdout().write_all(full_output.as_bytes());
             if !full_output.ends_with('\n') {
@@ -103,7 +105,7 @@ fn is_excluded_command(command: &str, excluded: &[String]) -> bool {
 pub fn interactive() {
     let real_shell = detect_shell();
 
-    eprintln!("lean-ctx shell v2.9.5 (wrapping {real_shell})");
+    eprintln!("lean-ctx shell v2.9.6 (wrapping {real_shell})");
     eprintln!("All command output is automatically compressed.");
     eprintln!("Type 'exit' to quit.\n");
 
