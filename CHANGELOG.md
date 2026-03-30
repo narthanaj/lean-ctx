@@ -2,6 +2,14 @@
 
 All notable changes to lean-ctx are documented here.
 
+## [2.9.7] — 2026-03-30
+
+### Fixed
+
+- **Turbo monorepo TUI hang** (Issue #33) — Built-in passthrough list for 28 TUI/long-running commands: `turbo`, `next dev`, `vite dev`, `nuxt dev`, `astro dev`, `nodemon`, `concurrently`, `pm2`, `docker compose up`, `vim`, `nvim`, `htop`, `ssh`, `tail -f`, `less`, and more. These are detected automatically and run without output buffering or compression.
+- **`LEAN_CTX_COMPRESS=1` env var** — Overrides pipe detection to force compression when stdout is piped. Used by pi-lean-ctx and other programmatic integrations that explicitly want compressed output.
+- **pi-lean-ctx v1.0.8** — Sets `LEAN_CTX_COMPRESS=1` in all exec calls and spawnHook, ensuring compression works correctly with the v2.9.6 pipe detection fix.
+
 ## [2.9.6] — 2026-03-30
 
 ### Fixed
