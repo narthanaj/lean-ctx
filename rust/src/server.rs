@@ -51,7 +51,7 @@ impl ServerHandler for LeanCtxServer {
         let instructions = build_instructions(self.crp_mode);
 
         InitializeResult::new(capabilities)
-            .with_server_info(Implementation::new("lean-ctx", "2.9.5"))
+            .with_server_info(Implementation::new("lean-ctx", "2.9.6"))
             .with_instructions(instructions)
     }
 
@@ -68,7 +68,7 @@ impl ServerHandler for LeanCtxServer {
         let capabilities = ServerCapabilities::builder().enable_tools().build();
 
         Ok(InitializeResult::new(capabilities)
-            .with_server_info(Implementation::new("lean-ctx", "2.9.5"))
+            .with_server_info(Implementation::new("lean-ctx", "2.9.6"))
             .with_instructions(instructions))
     }
 
@@ -1523,6 +1523,7 @@ fn execute_command(command: &str) -> String {
     let output = std::process::Command::new(&shell)
         .arg(&flag)
         .arg(command)
+        .env("LEAN_CTX_ACTIVE", "1")
         .output();
 
     match output {
