@@ -35,7 +35,7 @@ pub fn handle(
 
     let mut matches = Vec::new();
     let mut files_searched = 0u32;
-    let mut total_original_tokens = 0usize;
+    let mut matched_file_tokens = 0usize;
 
     for entry in walker.filter_map(|e| e.ok()) {
         if entry.file_type().is_none_or(|ft| ft.is_dir()) {
@@ -61,10 +61,14 @@ pub fn handle(
         };
 
         files_searched += 1;
-        total_original_tokens += count_tokens(&content);
+        let mut file_has_match = false;
 
         for (i, line) in content.lines().enumerate() {
             if re.is_match(line) {
+                if !file_has_match {
+                    file_has_match = true;
+                    matched_file_tokens += count_tokens(&content);
+                }
                 let short_path = protocol::shorten_path(&path.to_string_lossy());
                 matches.push(format!("{short_path}:{} {}", i + 1, line.trim()));
                 if matches.len() >= max_results {
@@ -81,7 +85,7 @@ pub fn handle(
     if matches.is_empty() {
         return (
             format!("0 matches for '{pattern}' in {files_searched} files"),
-            total_original_tokens,
+            0,
         );
     }
 
@@ -112,9 +116,9 @@ pub fn handle(
     }
 
     let sent = count_tokens(&result);
-    let savings = protocol::format_savings(total_original_tokens, sent);
+    let savings = protocol::format_savings(matched_file_tokens, sent);
 
-    (format!("{result}\n{savings}"), total_original_tokens)
+    (format!("{result}\n{savings}"), matched_file_tokens)
 }
 
 fn is_binary_ext(path: &Path) -> bool {

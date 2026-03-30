@@ -2,6 +2,13 @@
 
 All notable changes to lean-ctx are documented here.
 
+## [2.9.3] — 2026-03-30
+
+### Fixed
+
+- **Inflated token savings in `ctx_search`** — Token counting now only considers files with actual matches, not all scanned files. Previously, searching a large project could report millions of "saved" tokens from a single call because every file's content was counted as "input", even files without matches.
+- **Inflated savings in `ctx_tree`** — Raw tree comparison now respects `.gitignore` (same as compact output), preventing artificial 100% compression rates from including `node_modules/`, `.git/`, etc. in the baseline.
+
 ## [2.9.2] — 2026-03-30
 
 ### Fixed

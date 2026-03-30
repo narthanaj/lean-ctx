@@ -154,7 +154,7 @@ fn main() {
                 return;
             }
             "--version" | "-V" => {
-                println!("lean-ctx 2.9.2");
+                println!("lean-ctx 2.9.3");
                 return;
             }
             "--help" | "-h" => {
@@ -207,7 +207,7 @@ fn run_mcp_server() -> Result<()> {
             .with_writer(std::io::stderr)
             .init();
 
-        tracing::info!("lean-ctx v2.9.2 MCP server starting");
+        tracing::info!("lean-ctx v2.9.3 MCP server starting");
 
         let server = tools::create_server();
         let transport = rmcp::transport::io::stdio();
@@ -239,7 +239,7 @@ fn shell_quote(s: &str) -> String {
 
 fn print_help() {
     println!(
-        "lean-ctx 2.9.2 — The Intelligence Layer for AI Coding
+        "lean-ctx 2.9.3 — The Intelligence Layer for AI Coding
 
 90+ compression patterns | 24 MCP tools | Context Continuity Protocol
 

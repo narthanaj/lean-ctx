@@ -1,7 +1,6 @@
 use std::path::Path;
 
 use ignore::WalkBuilder;
-use walkdir::WalkDir;
 
 use crate::core::protocol;
 use crate::core::tokens::count_tokens;
@@ -69,14 +68,16 @@ fn generate_compact_tree(root: &Path, max_depth: usize, show_hidden: bool) -> St
 fn generate_raw_tree(root: &Path) -> String {
     let mut lines = Vec::new();
 
-    for entry in WalkDir::new(root)
-        .min_depth(1)
-        .sort_by_file_name()
-        .into_iter()
-        .flatten()
-    {
-        let name = entry.file_name().to_string_lossy().to_string();
-        if is_always_ignored(&name) {
+    let walker = WalkBuilder::new(root)
+        .hidden(true)
+        .git_ignore(true)
+        .git_global(true)
+        .git_exclude(true)
+        .sort_by_file_name(|a, b| a.cmp(b))
+        .build();
+
+    for entry in walker.filter_map(|e| e.ok()) {
+        if entry.depth() == 0 {
             continue;
         }
         lines.push(
@@ -100,22 +101,4 @@ fn count_files_in_dir(dir: &Path) -> usize {
         .filter_map(|e| e.ok())
         .filter(|e| e.file_type().is_some_and(|ft| ft.is_file()))
         .count()
-}
-
-fn is_always_ignored(name: &str) -> bool {
-    matches!(
-        name,
-        "node_modules"
-            | ".git"
-            | "target"
-            | "dist"
-            | "build"
-            | ".next"
-            | ".nuxt"
-            | "__pycache__"
-            | ".cache"
-            | "coverage"
-            | ".DS_Store"
-            | "Thumbs.db"
-    )
 }
