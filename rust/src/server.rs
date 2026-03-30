@@ -8,6 +8,42 @@ use serde_json::{json, Map, Value};
 
 use crate::tools::{CrpMode, LeanCtxServer};
 
+const UNIFIED_CAPABLE_CLIENTS: &[&str] = &[
+    "cursor",
+    "claude-code",
+    "claude-ai",
+    "claude",
+    "windsurf",
+    "cline",
+    "roo-code",
+    "roo code",
+    "copilot",
+    "vscode",
+    "visual studio code",
+    "opencode",
+    "gemini-cli",
+    "gemini",
+    "codex",
+    "zed",
+    "jetbrains",
+    "jetbrains-ai",
+    "amazonq",
+    "amazon q",
+    "goose",
+    "chatgpt",
+    "amp",
+    "ampcode",
+    "kilo code",
+    "continue",
+    "cherry studio",
+    "jan ai",
+    "glama",
+    "dust",
+    "crush",
+    "antigravity",
+    "google antigravity",
+];
+
 impl ServerHandler for LeanCtxServer {
     fn get_info(&self) -> ServerInfo {
         let capabilities = ServerCapabilities::builder().enable_tools().build();
@@ -15,8 +51,25 @@ impl ServerHandler for LeanCtxServer {
         let instructions = build_instructions(self.crp_mode);
 
         InitializeResult::new(capabilities)
-            .with_server_info(Implementation::new("lean-ctx", "2.9.4"))
+            .with_server_info(Implementation::new("lean-ctx", "2.9.5"))
             .with_instructions(instructions)
+    }
+
+    async fn initialize(
+        &self,
+        request: InitializeRequestParams,
+        _context: RequestContext<RoleServer>,
+    ) -> Result<InitializeResult, ErrorData> {
+        let name = request.client_info.name.clone();
+        tracing::info!("MCP client connected: {:?}", name);
+        *self.client_name.write().await = name.clone();
+
+        let instructions = build_instructions_with_client(self.crp_mode, &name);
+        let capabilities = ServerCapabilities::builder().enable_tools().build();
+
+        Ok(InitializeResult::new(capabilities)
+            .with_server_info(Implementation::new("lean-ctx", "2.9.5"))
+            .with_instructions(instructions))
     }
 
     async fn list_tools(
@@ -24,7 +77,7 @@ impl ServerHandler for LeanCtxServer {
         _request: Option<PaginatedRequestParams>,
         _context: RequestContext<RoleServer>,
     ) -> Result<ListToolsResult, ErrorData> {
-        if is_unified_mode() {
+        if should_use_unified(&self.client_name.read().await) {
             return Ok(ListToolsResult {
                 tools: unified_tool_defs(),
                 ..Default::default()
@@ -1233,17 +1286,18 @@ COMMUNICATION PROTOCOL (Cognitive Efficiency Protocol v1):\n\
         decoder_block = crate::core::protocol::instruction_decoder_block()
     );
 
-    if is_unified_mode() {
-        base.push_str("\n\n\
-UNIFIED TOOL MODE (active — saves ~18K tokens):\n\
+    if should_use_unified(client_name) {
+        base.push_str(
+            "\n\n\
+UNIFIED TOOL MODE (active — saves ~16K tokens):\n\
 All tools except ctx_read, ctx_shell, ctx_search, ctx_tree are accessed via ctx() meta-tool.\n\
 Syntax: ctx(tool=\"<name>\", ...params) — e.g.:\n\
 • ctx(tool=\"session\", action=\"load\") instead of ctx_session(action=\"load\")\n\
 • ctx(tool=\"compress\") instead of ctx_compress()\n\
-• ctx(tool=\"knowledge\", action=\"remember\", category=\"api\", key=\"auth\", value=\"JWT\") instead of ctx_knowledge(...)\n\
-• ctx(tool=\"graph\", action=\"build\") instead of ctx_graph(action=\"build\")\n\
-Sub-tool names: compress, metrics, analyze, cache, discover, smart_read, delta, dedup, \
-fill, intent, response, context, graph, session, knowledge, agent, overview, wrapped, benchmark, multi_read, semantic_search\n");
+• ctx(tool=\"knowledge\", action=\"remember\", category=\"api\", key=\"auth\", value=\"JWT\")\n\
+• ctx(tool=\"graph\", action=\"build\")\n\
+The ctx() tool description lists all 21 sub-tools with their parameters.\n",
+        );
     }
 
     let base = base;
@@ -1363,9 +1417,29 @@ fn unified_tool_defs() -> Vec<Tool> {
         ),
         tool_def(
             "ctx",
-            "Lean-ctx multi-tool — 20 sub-tools in one endpoint. \
-            Pass sub-tool name in 'tool' param, plus its parameters as sibling fields. \
-            See server instructions for per-tool parameters.",
+            "Lean-ctx meta-tool — 21 sub-tools via single endpoint. Set 'tool' param + sibling fields.\n\
+            Sub-tools:\n\
+            • compress — create context checkpoint\n\
+            • metrics — show token savings stats\n\
+            • analyze(path) — optimal compression mode for file\n\
+            • cache(action=status|clear|invalidate) — manage file cache\n\
+            • discover — find missed compression opportunities\n\
+            • smart_read(path) — auto-select best read mode\n\
+            • delta(path) — show only changed lines since last read\n\
+            • dedup(paths) — deduplicate across files\n\
+            • fill(path) — suggest next likely edit location\n\
+            • intent(text) — classify user intent for routing\n\
+            • response(text) — compress LLM output, remove filler\n\
+            • context(budget) — budget-aware context assembly\n\
+            • graph(action=build|query|impact) — code dependency graph\n\
+            • session(action=load|save|status|task|finding|decision) — cross-session memory\n\
+            • knowledge(action=remember|recall|pattern|status|remove|consolidate) — persistent project memory\n\
+            • agent(action=register|list|post|read|status) — multi-agent coordination\n\
+            • overview(task) — task-relevant project map\n\
+            • wrapped(period) — savings report card\n\
+            • benchmark(path) — token counts per compression mode\n\
+            • multi_read(paths) — batch file read\n\
+            • semantic_search(query, path?, limit?) — BM25 code search",
             json!({
                 "type": "object",
                 "properties": {
@@ -1406,8 +1480,20 @@ fn unified_tool_defs() -> Vec<Tool> {
     ]
 }
 
-fn is_unified_mode() -> bool {
-    std::env::var("LEAN_CTX_UNIFIED").is_ok()
+fn should_use_unified(client_name: &str) -> bool {
+    if std::env::var("LEAN_CTX_FULL_TOOLS").is_ok() {
+        return false;
+    }
+    if std::env::var("LEAN_CTX_UNIFIED").is_ok() {
+        return true;
+    }
+    if client_name.is_empty() {
+        return false;
+    }
+    let lower = client_name.to_lowercase();
+    UNIFIED_CAPABLE_CLIENTS
+        .iter()
+        .any(|known| lower.contains(known))
 }
 
 fn get_str_array(args: &Option<serde_json::Map<String, Value>>, key: &str) -> Option<Vec<String>> {
@@ -1567,4 +1653,67 @@ fn cloud_background_tasks() {
     }
 
     let _ = config.save();
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_should_use_unified_known_clients() {
+        std::env::remove_var("LEAN_CTX_UNIFIED");
+        std::env::remove_var("LEAN_CTX_FULL_TOOLS");
+
+        assert!(should_use_unified("cursor"));
+        assert!(should_use_unified("Cursor"));
+        assert!(should_use_unified("claude-code"));
+        assert!(should_use_unified("Claude Code"));
+        assert!(should_use_unified("windsurf"));
+        assert!(should_use_unified("Windsurf Editor"));
+        assert!(should_use_unified("cline"));
+        assert!(should_use_unified("roo-code"));
+        assert!(should_use_unified("vscode"));
+        assert!(should_use_unified("Visual Studio Code"));
+        assert!(should_use_unified("copilot"));
+        assert!(should_use_unified("opencode"));
+        assert!(should_use_unified("gemini-cli"));
+        assert!(should_use_unified("codex"));
+        assert!(should_use_unified("zed"));
+        assert!(should_use_unified("jetbrains-ai"));
+        assert!(should_use_unified("amazonq"));
+        assert!(should_use_unified("goose"));
+        assert!(should_use_unified("ampcode"));
+    }
+
+    #[test]
+    fn test_should_use_unified_unknown_clients() {
+        std::env::remove_var("LEAN_CTX_UNIFIED");
+        std::env::remove_var("LEAN_CTX_FULL_TOOLS");
+
+        assert!(!should_use_unified(""));
+        assert!(!should_use_unified("some-unknown-client"));
+        assert!(!should_use_unified("my-custom-mcp-client"));
+    }
+
+    #[test]
+    fn test_should_use_unified_env_overrides() {
+        std::env::remove_var("LEAN_CTX_UNIFIED");
+        std::env::remove_var("LEAN_CTX_FULL_TOOLS");
+
+        std::env::set_var("LEAN_CTX_UNIFIED", "1");
+        assert!(should_use_unified("some-unknown-client"));
+        assert!(should_use_unified(""));
+        std::env::remove_var("LEAN_CTX_UNIFIED");
+
+        std::env::set_var("LEAN_CTX_FULL_TOOLS", "1");
+        assert!(!should_use_unified("cursor"));
+        assert!(!should_use_unified("claude-code"));
+        std::env::remove_var("LEAN_CTX_FULL_TOOLS");
+    }
+
+    #[test]
+    fn test_unified_tool_count() {
+        let tools = unified_tool_defs();
+        assert_eq!(tools.len(), 5, "Expected 5 unified tools");
+    }
 }

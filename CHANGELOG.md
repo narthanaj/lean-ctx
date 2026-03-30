@@ -2,6 +2,15 @@
 
 All notable changes to lean-ctx are documented here.
 
+## [2.9.5] — 2026-03-30
+
+### Added
+
+- **Smart Auto-Unified Mode** — MCP tool overhead reduced from ~18K to ~2.3K tokens per session. lean-ctx now detects the connecting IDE/agent during MCP initialization and automatically switches to Unified Mode (5 tools instead of 24) for all known clients: Cursor, Claude Code, Windsurf, VS Code Copilot, Cline, Roo Code, OpenCode, Gemini CLI, Codex, Zed, JetBrains, Amazon Q, Goose, AmpCode, and 19 more. Unknown clients safely fall back to full 24 tools.
+- **Enhanced `ctx()` meta-tool** — Description now includes all 21 sub-tools with parameter signatures, so LLMs can call sub-tools without reading instructions.
+- **`LEAN_CTX_FULL_TOOLS=1`** — New env var to force full 24-tool mode (overrides auto-detection). `LEAN_CTX_UNIFIED=1` kept for backward compatibility.
+- **4 new unit tests** for client detection logic and tool count verification.
+
 ## [2.9.4] — 2026-03-30
 
 ### Fixed

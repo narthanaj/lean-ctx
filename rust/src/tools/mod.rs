@@ -71,6 +71,7 @@ pub struct LeanCtxServer {
     pub last_call: Arc<RwLock<Instant>>,
     pub crp_mode: CrpMode,
     pub agent_id: Arc<RwLock<Option<String>>>,
+    pub client_name: Arc<RwLock<String>>,
 }
 
 #[derive(Clone, Debug)]
@@ -115,6 +116,7 @@ impl LeanCtxServer {
             last_call: Arc::new(RwLock::new(Instant::now())),
             crp_mode,
             agent_id: Arc::new(RwLock::new(None)),
+            client_name: Arc::new(RwLock::new(String::new())),
         }
     }
 
