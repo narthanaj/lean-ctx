@@ -199,14 +199,46 @@ pub fn run_setup() {
     } else {
         "Restart your shell"
     };
+
+    let dim = "\x1b[2m";
+    let bold = "\x1b[1m";
+    let cyan = "\x1b[36m";
+    let yellow = "\x1b[33m";
+    let rst = "\x1b[0m";
+
     println!();
-    println!("  \x1b[1mNext:\x1b[0m  {source_cmd}");
-    if !newly_configured.is_empty() {
+    println!("  {bold}Next steps:{rst}");
+    println!();
+    println!("  {cyan}1.{rst} Reload your shell:");
+    println!("     {bold}{source_cmd}{rst}");
+    println!();
+
+    let mut tools_to_restart: Vec<String> =
+        newly_configured.iter().map(|s| s.to_string()).collect();
+    for name in &rules_injected {
+        if !tools_to_restart.iter().any(|t| t == name) {
+            tools_to_restart.push(name.clone());
+        }
+    }
+
+    if !tools_to_restart.is_empty() {
+        println!("  {cyan}2.{rst} {yellow}{bold}Restart your IDE / AI tool:{rst}");
+        println!("     {bold}{}{rst}", tools_to_restart.join(", "));
         println!(
-            "         Restart {} to load MCP tools",
-            newly_configured.join(", ")
+            "     {dim}The MCP connection must be re-established for changes to take effect.{rst}"
+        );
+        println!("     {dim}Close and re-open the application completely.{rst}");
+    } else if !already_configured.is_empty() {
+        println!(
+            "  {cyan}2.{rst} {dim}Your tools are already configured — no restart needed.{rst}"
         );
     }
+
+    println!();
+    println!(
+        "  {dim}After restart, lean-ctx will automatically optimize every AI interaction.{rst}"
+    );
+    println!("  {dim}Verify with:{rst} {bold}lean-ctx gain{rst}");
 
     // Logo + commands
     println!();

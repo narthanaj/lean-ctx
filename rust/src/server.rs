@@ -64,6 +64,12 @@ impl ServerHandler for LeanCtxServer {
         tracing::info!("MCP client connected: {:?}", name);
         *self.client_name.write().await = name.clone();
 
+        tokio::task::spawn_blocking(|| {
+            if let Some(home) = dirs::home_dir() {
+                let _ = crate::rules_inject::inject_all_rules(&home);
+            }
+        });
+
         let instructions = build_instructions_with_client(self.crp_mode, &name);
         let capabilities = ServerCapabilities::builder().enable_tools().build();
 

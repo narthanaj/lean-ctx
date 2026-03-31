@@ -28,6 +28,7 @@ pub fn run(args: &[String]) {
 
     if latest_tag == CURRENT_VERSION {
         println!("  \x1b[32m✓\x1b[0m Already up to date (v{CURRENT_VERSION}).");
+        println!("  \x1b[2mIf your IDE still uses an older version, restart it to reconnect the MCP server.\x1b[0m");
         println!();
         return;
     }
@@ -76,6 +77,12 @@ pub fn run(args: &[String]) {
     crate::terminal_ui::print_logo_animated();
     println!("  \x1b[1;32m✓ Updated to lean-ctx v{latest_tag}\x1b[0m");
     println!("  \x1b[2mBinary: {}\x1b[0m", current_exe.display());
+    println!();
+    println!("  \x1b[33m\x1b[1m⟳ Restart your IDE / AI tool to activate the new version.\x1b[0m");
+    println!("    \x1b[2mClose and re-open Cursor, VS Code, Claude Code, etc. completely.\x1b[0m");
+    println!("    \x1b[2mThe MCP server must reconnect to use the updated binary.\x1b[0m");
+    println!();
+    println!("    \x1b[2mAgent rules will be updated automatically on the next IDE start.\x1b[0m");
     println!();
 }
 

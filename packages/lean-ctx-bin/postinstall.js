@@ -173,7 +173,17 @@ async function main() {
 
     console.log(`lean-ctx: installed to ${BINARY_PATH}`);
     console.log("");
-    console.log("Next: run \x1b[1mlean-ctx setup\x1b[0m to configure your shell and editors automatically.");
+    console.log("\x1b[1m┌─────────────────────────────────────────────────────┐\x1b[0m");
+    console.log("\x1b[1m│\x1b[0m  \x1b[32m\x1b[1m✓ lean-ctx installed successfully\x1b[0m                    \x1b[1m│\x1b[0m");
+    console.log("\x1b[1m│\x1b[0m                                                     \x1b[1m│\x1b[0m");
+    console.log("\x1b[1m│\x1b[0m  \x1b[36m1.\x1b[0m Run:  \x1b[1mlean-ctx setup\x1b[0m                            \x1b[1m│\x1b[0m");
+    console.log("\x1b[1m│\x1b[0m     \x1b[2mConfigures shell, editors, and agent rules\x1b[0m      \x1b[1m│\x1b[0m");
+    console.log("\x1b[1m│\x1b[0m                                                     \x1b[1m│\x1b[0m");
+    console.log("\x1b[1m│\x1b[0m  \x1b[36m2.\x1b[0m \x1b[33m\x1b[1mRestart your IDE\x1b[0m (Cursor, VS Code, etc.)       \x1b[1m│\x1b[0m");
+    console.log("\x1b[1m│\x1b[0m     \x1b[2mSo the MCP connection picks up lean-ctx\x1b[0m         \x1b[1m│\x1b[0m");
+    console.log("\x1b[1m│\x1b[0m                                                     \x1b[1m│\x1b[0m");
+    console.log("\x1b[1m│\x1b[0m  \x1b[2mDocs: https://leanctx.com/docs\x1b[0m                      \x1b[1m│\x1b[0m");
+    console.log("\x1b[1m└─────────────────────────────────────────────────────┘\x1b[0m");
   } finally {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   }
