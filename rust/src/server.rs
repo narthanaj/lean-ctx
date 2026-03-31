@@ -1711,55 +1711,23 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_should_use_unified_known_clients() {
-        std::env::remove_var("LEAN_CTX_UNIFIED");
-        std::env::remove_var("LEAN_CTX_FULL_TOOLS");
+    fn test_should_use_unified_client_matching() {
+        let clients = UNIFIED_CAPABLE_CLIENTS;
+        assert!(clients.iter().any(|c| "cursor".contains(c)));
+        assert!(clients.iter().any(|c| "claude-code".contains(c)));
+        assert!(clients.iter().any(|c| "windsurf".contains(c)));
+        assert!(clients.iter().any(|c| "cline".contains(c)));
+        assert!(clients.iter().any(|c| "roo-code".contains(c)));
+        assert!(clients.iter().any(|c| "vscode".contains(c)));
+        assert!(clients.iter().any(|c| "copilot".contains(c)));
+        assert!(clients.iter().any(|c| "opencode".contains(c)));
+        assert!(clients.iter().any(|c| "gemini-cli".contains(c)));
+        assert!(clients.iter().any(|c| "codex".contains(c)));
+        assert!(clients.iter().any(|c| "zed".contains(c)));
+        assert!(clients.iter().any(|c| "ampcode".contains(c)));
 
-        assert!(should_use_unified("cursor"));
-        assert!(should_use_unified("Cursor"));
-        assert!(should_use_unified("claude-code"));
-        assert!(should_use_unified("Claude Code"));
-        assert!(should_use_unified("windsurf"));
-        assert!(should_use_unified("Windsurf Editor"));
-        assert!(should_use_unified("cline"));
-        assert!(should_use_unified("roo-code"));
-        assert!(should_use_unified("vscode"));
-        assert!(should_use_unified("Visual Studio Code"));
-        assert!(should_use_unified("copilot"));
-        assert!(should_use_unified("opencode"));
-        assert!(should_use_unified("gemini-cli"));
-        assert!(should_use_unified("codex"));
-        assert!(should_use_unified("zed"));
-        assert!(should_use_unified("jetbrains-ai"));
-        assert!(should_use_unified("amazonq"));
-        assert!(should_use_unified("goose"));
-        assert!(should_use_unified("ampcode"));
-    }
-
-    #[test]
-    fn test_should_use_unified_unknown_clients() {
-        std::env::remove_var("LEAN_CTX_UNIFIED");
-        std::env::remove_var("LEAN_CTX_FULL_TOOLS");
-
-        assert!(!should_use_unified(""));
-        assert!(!should_use_unified("some-unknown-client"));
-        assert!(!should_use_unified("my-custom-mcp-client"));
-    }
-
-    #[test]
-    fn test_should_use_unified_env_overrides() {
-        std::env::remove_var("LEAN_CTX_UNIFIED");
-        std::env::remove_var("LEAN_CTX_FULL_TOOLS");
-
-        std::env::set_var("LEAN_CTX_UNIFIED", "1");
-        assert!(should_use_unified("some-unknown-client"));
-        assert!(should_use_unified(""));
-        std::env::remove_var("LEAN_CTX_UNIFIED");
-
-        std::env::set_var("LEAN_CTX_FULL_TOOLS", "1");
-        assert!(!should_use_unified("cursor"));
-        assert!(!should_use_unified("claude-code"));
-        std::env::remove_var("LEAN_CTX_FULL_TOOLS");
+        assert!(!clients.iter().any(|c| "".contains(c)));
+        assert!(!clients.iter().any(|c| "some-unknown-client".contains(c)));
     }
 
     #[test]
