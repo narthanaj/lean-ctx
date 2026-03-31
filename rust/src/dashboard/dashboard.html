@@ -163,7 +163,7 @@ tr:hover td{background:var(--surface-2)}
 <div class="app">
   <header>
     <div style="display:flex;align-items:center;gap:12px">
-      <div class="logo"><h1>Lean<span>CTX</span></h1><span class="ver">v2.9.13</span></div>
+      <div class="logo"><h1>Lean<span>CTX</span></h1><span class="ver">v2.9.14</span></div>
       <a class="hdr-link" href="https://leanctx.com" target="_blank">leanctx.com</a>
     </div>
     <div class="hdr-r">
@@ -177,6 +177,10 @@ tr:hover td{background:var(--surface-2)}
       <button class="btn" onclick="loadAll()">Refresh</button>
     </div>
   </header>
+  <div id="updateBanner" style="display:none;background:linear-gradient(135deg,#f59e0b22,#f59e0b11);border:1px solid #f59e0b44;border-radius:10px;padding:12px 20px;margin:0 auto 16px;max-width:1200px;text-align:center;font-size:14px;color:#f59e0b">
+    <strong>&#10227; Update available:</strong> <span id="ubCur"></span> &rarr; <strong><span id="ubNew"></span></strong>
+    &nbsp;&mdash;&nbsp; run: <code style="background:#f59e0b22;padding:2px 8px;border-radius:4px;font-weight:600">lean-ctx update</code>
+  </div>
   <div id="root"><div class="loading">Loading...</div></div>
   <div class="footer">LeanCTX — The Intelligence Layer for AI Coding · <a href="https://leanctx.com" target="_blank">leanctx.com</a></div>
 </div>
@@ -403,7 +407,11 @@ function renC(cmds){
   if(b){if(hid===0&&!showAll)b.style.display='none';else{b.style.display='';b.textContent=showAll?'Show active only':'Show all ('+hid+' hidden)'}}
 }
 
-async function loadAll(){await load()}
+async function checkVersion(){
+  try{const r=await fetch('/api/version');const v=await r.json();
+  if(v.update_available){$('ubCur').textContent='v'+v.current;$('ubNew').textContent='v'+v.latest;$('updateBanner').style.display='block'}}catch(e){}}
+
+async function loadAll(){await load();await checkVersion()}
 loadAll();startA();
 </script>
 </body>

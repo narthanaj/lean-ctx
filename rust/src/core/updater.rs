@@ -173,7 +173,16 @@ fn replace_binary(
         std::fs::rename(&tmp_path, current_exe).map_err(|e| {
             let _ = std::fs::remove_file(&tmp_path);
             format!("Cannot replace binary (permission denied?): {e}")
-        })
+        })?;
+
+        #[cfg(target_os = "macos")]
+        {
+            let _ = std::process::Command::new("codesign")
+                .args(["--force", "-s", "-", &current_exe.display().to_string()])
+                .output();
+        }
+
+        Ok(())
     }
 }
 

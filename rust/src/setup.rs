@@ -102,18 +102,24 @@ pub fn run_setup() {
 
     // Step 3: Agent rules injection
     terminal_ui::print_step_header(3, 5, "Agent Rules");
-    let (rules_injected, rules_already, rules_errors) =
-        crate::rules_inject::inject_all_rules(&home);
-    for name in &rules_injected {
+    let rules_result = crate::rules_inject::inject_all_rules(&home);
+    for name in &rules_result.injected {
         terminal_ui::print_status_new(&format!("{name:<20} \x1b[2mrules injected\x1b[0m"));
     }
-    for name in &rules_already {
-        terminal_ui::print_status_ok(&format!("{name:<20} \x1b[2mrules present\x1b[0m"));
+    for name in &rules_result.updated {
+        terminal_ui::print_status_new(&format!("{name:<20} \x1b[2mrules updated\x1b[0m"));
     }
-    for err in &rules_errors {
+    for name in &rules_result.already {
+        terminal_ui::print_status_ok(&format!("{name:<20} \x1b[2mrules up-to-date\x1b[0m"));
+    }
+    for err in &rules_result.errors {
         terminal_ui::print_status_warn(err);
     }
-    if rules_injected.is_empty() && rules_already.is_empty() && rules_errors.is_empty() {
+    if rules_result.injected.is_empty()
+        && rules_result.updated.is_empty()
+        && rules_result.already.is_empty()
+        && rules_result.errors.is_empty()
+    {
         terminal_ui::print_status_skip("No agent rules needed");
     }
 
@@ -215,7 +221,11 @@ pub fn run_setup() {
 
     let mut tools_to_restart: Vec<String> =
         newly_configured.iter().map(|s| s.to_string()).collect();
-    for name in &rules_injected {
+    for name in rules_result
+        .injected
+        .iter()
+        .chain(rules_result.updated.iter())
+    {
         if !tools_to_restart.iter().any(|t| t == name) {
             tools_to_restart.push(name.clone());
         }

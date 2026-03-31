@@ -155,7 +155,7 @@ fn main() {
                 return;
             }
             "--version" | "-V" => {
-                println!("lean-ctx 2.9.13");
+                println!("lean-ctx 2.9.14");
                 return;
             }
             "--help" | "-h" => {
@@ -240,7 +240,7 @@ fn shell_quote(s: &str) -> String {
 
 fn print_help() {
     println!(
-        "lean-ctx 2.9.13 — The Intelligence Layer for AI Coding
+        "lean-ctx 2.9.14 — The Intelligence Layer for AI Coding
 
 90+ compression patterns | 24 MCP tools | Context Continuity Protocol
 
@@ -659,15 +659,23 @@ fn cmd_cloud(args: &[String]) {
 
 fn print_gain_with_logo() {
     terminal_ui::print_logo_animated();
+
+    if let Some(banner) = core::version_check::get_update_banner() {
+        println!("{banner}");
+        println!();
+    }
+
     let output = core::stats::format_gain();
     print!("{output}");
     let dim = "\x1b[2m";
     let rst = "\x1b[0m";
-    println!("  {dim}lean-ctx v2.9.13  |  leanctx.com  |  lean-ctx dashboard{rst}");
+    println!("  {dim}lean-ctx v2.9.14  |  leanctx.com  |  lean-ctx dashboard{rst}");
     if !cloud_client::check_pro() {
         println!("  {dim}Save ~25% more with Pro \u{2192} lean-ctx upgrade{rst}");
     }
     println!();
+
+    core::version_check::check_background();
 }
 
 fn cmd_upgrade() {

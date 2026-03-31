@@ -2,6 +2,19 @@
 
 All notable changes to lean-ctx are documented here.
 
+## [2.9.14] — 2026-03-31
+
+### Added
+
+- **Auto-Consolidate** — Session findings and decisions are automatically persisted into project knowledge at every auto-checkpoint (every 15 tool calls). No manual `ctx_knowledge consolidate` needed
+- **Cache-TTL-aware compression** — When the prompt cache has expired (>60 min idle), `ctx_read` automatically upgrades to more aggressive compression modes (`full` → `aggressive`, `map` → `signatures`), saving tokens when the cache would be rebuilt anyway
+- **Contextual tips in `lean-ctx gain`** — Rotating daily tips based on your actual usage stats. Suggests unused modes, features, and optimization strategies
+- **macOS codesign fix** — `lean-ctx update` now automatically re-signs the binary after replacement on Apple Silicon, preventing SIGKILL from Gatekeeper that could make the binary hang
+
+### Fixed
+
+- **Binary hang after copy on macOS Apple Silicon** — Copying the lean-ctx binary without re-signing caused macOS to kill it with SIGKILL. The updater now runs `codesign --force -s -` automatically after every binary replacement
+
 ## [2.9.13] — 2026-03-31
 
 ### Improved

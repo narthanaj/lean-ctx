@@ -51,7 +51,7 @@ impl ServerHandler for LeanCtxServer {
         let instructions = build_instructions(self.crp_mode);
 
         InitializeResult::new(capabilities)
-            .with_server_info(Implementation::new("lean-ctx", "2.9.13"))
+            .with_server_info(Implementation::new("lean-ctx", "2.9.14"))
             .with_instructions(instructions)
     }
 
@@ -68,13 +68,14 @@ impl ServerHandler for LeanCtxServer {
             if let Some(home) = dirs::home_dir() {
                 let _ = crate::rules_inject::inject_all_rules(&home);
             }
+            crate::core::version_check::check_background();
         });
 
         let instructions = build_instructions_with_client(self.crp_mode, &name);
         let capabilities = ServerCapabilities::builder().enable_tools().build();
 
         Ok(InitializeResult::new(capabilities)
-            .with_server_info(Implementation::new("lean-ctx", "2.9.13"))
+            .with_server_info(Implementation::new("lean-ctx", "2.9.14"))
             .with_instructions(instructions))
     }
 
@@ -613,19 +614,39 @@ impl ServerHandler for LeanCtxServer {
                     let sl = sl.max(1_i64);
                     mode = format!("lines:{sl}-999999");
                 }
+                let stale = self.is_prompt_cache_stale().await;
+                let effective_mode = LeanCtxServer::upgrade_mode_if_stale(&mode, stale).to_string();
                 let mut cache = self.cache.write().await;
                 let output = if fresh {
-                    crate::tools::ctx_read::handle_fresh(&mut cache, &path, &mode, self.crp_mode)
+                    crate::tools::ctx_read::handle_fresh(
+                        &mut cache,
+                        &path,
+                        &effective_mode,
+                        self.crp_mode,
+                    )
                 } else {
-                    crate::tools::ctx_read::handle(&mut cache, &path, &mode, self.crp_mode)
+                    crate::tools::ctx_read::handle(
+                        &mut cache,
+                        &path,
+                        &effective_mode,
+                        self.crp_mode,
+                    )
                 };
+                let stale_note = if effective_mode != mode {
+                    format!(
+                        "⚡ Prompt cache expired (>60min idle) — auto-upgraded {mode} → {effective_mode} for better compression\n\n"
+                    )
+                } else {
+                    String::new()
+                };
+                let output = format!("{stale_note}{output}");
                 let original = cache.get(&path).map_or(0, |e| e.original_tokens);
                 let file_ref = cache.file_ref_map().get(&path).cloned();
                 let tokens = crate::core::tokens::count_tokens(&output);
                 drop(cache);
                 {
                     let mut session = self.session.write().await;
-                    session.touch_file(&path, file_ref.as_deref(), &mode, original);
+                    session.touch_file(&path, file_ref.as_deref(), &effective_mode, original);
                     if session.project_root.is_none() {
                         if let Some(root) = detect_project_root(&path) {
                             session.project_root = Some(root.clone());

@@ -97,6 +97,10 @@ async fn handle_request(mut stream: tokio::net::TcpStream) {
             let json = serde_json::to_string(&knowledge).unwrap_or_else(|_| "{}".to_string());
             ("200 OK", "application/json", json)
         }
+        "/api/version" => {
+            let json = crate::core::version_check::version_info_json();
+            ("200 OK", "application/json", json)
+        }
         "/" | "/index.html" => (
             "200 OK",
             "text/html; charset=utf-8",

@@ -29,4 +29,5 @@ pub mod task_relevance;
 pub mod tokens;
 pub mod updater;
 pub mod vector_index;
+pub mod version_check;
 pub mod wrapped;

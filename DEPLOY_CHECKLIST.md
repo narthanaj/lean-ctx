@@ -24,6 +24,7 @@ Use this checklist for every release. Copy the section below and check off each 
 
 - [ ] Remove old binary: `rm -f ~/.cargo/bin/lean-ctx`
 - [ ] Copy new binary: `cp rust/target/release/lean-ctx ~/.cargo/bin/lean-ctx`
+- [ ] Codesign (macOS): `codesign --force -s - ~/.cargo/bin/lean-ctx`
 - [ ] Verify version: `LEAN_CTX_ACTIVE=1 lean-ctx --version`
 - [ ] Smoke test shell hook: `LEAN_CTX_ACTIVE=1 lean-ctx -c echo hello`
 - [ ] Smoke test config: `LEAN_CTX_ACTIVE=1 lean-ctx config`
@@ -100,6 +101,21 @@ git commit -m "chore: update AUR + npm packages to X.Y.Z"
 git push origin main
 git push github main
 ```
+
+## Website version.txt (update notification)
+
+After publishing the release, update the version.txt file on leanctx.com so users get notified:
+
+```bash
+# On the deploy branch, update the version file:
+echo "X.Y.Z" > website/public/version.txt
+```
+
+This file is fetched by `lean-ctx gain` and the dashboard (cached for 24h) to show
+an update banner when a newer version is available.
+
+- [ ] Update `website/public/version.txt` with new version
+- [ ] Include in the deploy commit (see Website section below)
 
 ## Website (leanctx.com) — only if website changes needed
 
@@ -178,6 +194,7 @@ If critical issues found after publish:
 - **Shell aliases cause recursion**: Always use `LEAN_CTX_ACTIVE=1` for ALL cargo/lean-ctx commands
 - **Node.js version**: Website needs Node.js >= 22.12.0 (`/opt/homebrew/opt/node@22/bin`)
 - **Binary corruption on copy**: Remove old binary before copying (`rm -f` then `cp`)
+- **macOS Apple Silicon codesign**: After copying binary, ALWAYS run `codesign --force -s - <path>`. Without this, macOS kills the binary with SIGKILL
 - **Browser cache**: After website deploy, test with `curl` not browser
 - **Website deploy branch**: `git checkout origin/deploy` overwrites local edits — apply changes AFTER restoring deploy files
 - **pi-lean-ctx**: Does NOT need update for lean-ctx version bumps (binary is found dynamically)

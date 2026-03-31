@@ -177,6 +177,22 @@ impl LeanCtxServer {
         self.write_mcp_live_stats().await;
     }
 
+    pub async fn is_prompt_cache_stale(&self) -> bool {
+        let last = *self.last_call.read().await;
+        last.elapsed().as_secs() > 3600
+    }
+
+    pub fn upgrade_mode_if_stale(mode: &str, stale: bool) -> &str {
+        if !stale {
+            return mode;
+        }
+        match mode {
+            "full" => "aggressive",
+            "map" => "signatures",
+            m => m,
+        }
+    }
+
     pub fn increment_and_check(&self) -> bool {
         let count = self.call_count.fetch_add(1, Ordering::Relaxed) + 1;
         self.checkpoint_interval > 0 && count.is_multiple_of(self.checkpoint_interval)
@@ -194,7 +210,17 @@ impl LeanCtxServer {
         let mut session = self.session.write().await;
         let _ = session.save();
         let session_summary = session.format_compact();
+        let has_insights = !session.findings.is_empty() || !session.decisions.is_empty();
+        let project_root = session.project_root.clone();
         drop(session);
+
+        if has_insights {
+            if let Some(root) = project_root {
+                std::thread::spawn(move || {
+                    auto_consolidate_knowledge(&root);
+                });
+            }
+        }
 
         self.record_call("ctx_compress", 0, 0, Some("auto".to_string()))
             .await;
@@ -279,4 +305,60 @@ impl LeanCtxServer {
 
 pub fn create_server() -> LeanCtxServer {
     LeanCtxServer::new()
+}
+
+fn auto_consolidate_knowledge(project_root: &str) {
+    use crate::core::knowledge::ProjectKnowledge;
+    use crate::core::session::SessionState;
+
+    let session = match SessionState::load_latest() {
+        Some(s) => s,
+        None => return,
+    };
+
+    if session.findings.is_empty() && session.decisions.is_empty() {
+        return;
+    }
+
+    let mut knowledge = ProjectKnowledge::load_or_create(project_root);
+
+    for finding in &session.findings {
+        let key = if let Some(ref file) = finding.file {
+            if let Some(line) = finding.line {
+                format!("{file}:{line}")
+            } else {
+                file.clone()
+            }
+        } else {
+            "finding-auto".to_string()
+        };
+        knowledge.remember("finding", &key, &finding.summary, &session.id, 0.7);
+    }
+
+    for decision in &session.decisions {
+        let key = decision
+            .summary
+            .chars()
+            .take(50)
+            .collect::<String>()
+            .replace(' ', "-")
+            .to_lowercase();
+        knowledge.remember("decision", &key, &decision.summary, &session.id, 0.85);
+    }
+
+    let task_desc = session
+        .task
+        .as_ref()
+        .map(|t| t.description.clone())
+        .unwrap_or_default();
+
+    let summary = format!(
+        "Auto-consolidate session {}: {} — {} findings, {} decisions",
+        session.id,
+        task_desc,
+        session.findings.len(),
+        session.decisions.len()
+    );
+    knowledge.consolidate(&summary, vec![session.id.clone()]);
+    let _ = knowledge.save();
 }
