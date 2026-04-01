@@ -23,6 +23,7 @@
   <a href="https://aur.archlinux.org/packages/lean-ctx"><img src="https://img.shields.io/aur/version/lean-ctx?color=%231793d1" alt="AUR"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License"></a>
   <a href="https://discord.gg/pTHkG9Hew9"><img src="https://img.shields.io/badge/Discord-Join-5865F2?logo=discord&logoColor=white" alt="Discord"></a>
+  <a href="https://x.com/leanctx"><img src="https://img.shields.io/badge/𝕏-Follow-000000?logo=x&logoColor=white" alt="X/Twitter"></a>
 </p>
 
 <p align="center">
@@ -663,6 +664,7 @@ Contributions welcome! Open an issue or PR on [GitHub](https://github.com/yvgude
 
 <p align="center">
   <a href="https://discord.gg/pTHkG9Hew9">Discord</a> ·
+  <a href="https://x.com/leanctx">𝕏 / Twitter</a> ·
   <a href="https://buymeacoffee.com/yvgude">Buy me a coffee ☕</a>
 </p>
 

@@ -145,12 +145,14 @@ git checkout -- .
 
 - [ ] Verify: `curl -sL https://leanctx.com/ -o /dev/null -w "%{http_code}"` → 200
 
-## Discord Release Notification (automatic)
+## Release Notifications (automatic — Discord + Twitter)
 
-A GitHub webhook triggers an n8n workflow that posts the full changelog as a Discord embed:
+A GitHub webhook triggers an n8n workflow that posts the full changelog as a Discord embed and a tweet:
 
-- **n8n Workflow:** `LeanCTX Release → Discord` (ID: `leanctx-release-discord`)
+- **n8n Workflow:** `LeanCTX Release → Discord + Twitter` (ID: `leanctx-release-discord`)
 - **Trigger:** GitHub `release` event (action: `published`)
+- **Twitter:** `@leanctx` — max 160 chars, OAuth1-signed via Code node
+- **Error Handling:** Twitter errors don't block Discord (continueRegularOutput)
 - **Discord Channel:** via webhook `https://discord.com/api/webhooks/1488799951445295199/...`
 - **GitHub Webhook ID:** `603876230`
 
@@ -169,6 +171,7 @@ curl -X POST "http://n8n-ggs44kcog0so4s0w4sc88gwg.n8n.185-142-213-170.sslip.io/w
 - [ ] `npm view lean-ctx-bin version` → X.Y.Z
 - [ ] GitHub Release page has binary + notes
 - [ ] Discord channel has release announcement (automatic via n8n)
+- [ ] Twitter @leanctx has release tweet (automatic via n8n, requires API credits)
 - [ ] `gh issue list --repo yvgude/lean-ctx --state open` → 0 issues (or expected)
 - [ ] Close related GitHub issues with fix comment
 
