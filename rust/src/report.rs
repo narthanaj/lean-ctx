@@ -372,10 +372,7 @@ fn find_gh_binary() -> Option<std::path::PathBuf> {
             return Some(p.to_path_buf());
         }
     }
-    if let Ok(output) = std::process::Command::new("which")
-        .arg("gh")
-        .output()
-    {
+    if let Ok(output) = std::process::Command::new("which").arg("gh").output() {
         if output.status.success() {
             let path = String::from_utf8_lossy(&output.stdout).trim().to_string();
             if !path.is_empty() {
@@ -399,11 +396,16 @@ fn try_gh_cli(title: &str, body: &str) -> bool {
 
     let result = std::process::Command::new(&gh)
         .args([
-            "issue", "create",
-            "--repo", REPO,
-            "--title", title,
-            "--body-file", &tmp.to_string_lossy(),
-            "--label", "bug,auto-report",
+            "issue",
+            "create",
+            "--repo",
+            REPO,
+            "--title",
+            title,
+            "--body-file",
+            &tmp.to_string_lossy(),
+            "--label",
+            "bug,auto-report",
         ])
         .output();
 
@@ -414,10 +416,14 @@ fn try_gh_cli(title: &str, body: &str) -> bool {
                 let _ = std::fs::remove_file(&tmp);
                 let fallback = std::process::Command::new(&gh)
                     .args([
-                        "issue", "create",
-                        "--repo", REPO,
-                        "--title", title,
-                        "--body-file", &tmp.to_string_lossy(),
+                        "issue",
+                        "create",
+                        "--repo",
+                        REPO,
+                        "--title",
+                        title,
+                        "--body-file",
+                        &tmp.to_string_lossy(),
                     ])
                     .output();
                 let _ = std::fs::remove_file(&tmp);
