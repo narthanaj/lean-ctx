@@ -65,7 +65,7 @@
 | Strategy | How | Impact |
 |:---|:---|:---|
 | **Shell Hook** | Transparently compresses CLI output (90+ patterns) before it reaches the LLM | **60-95%** savings |
-| **Context Server** | 26 MCP tools for cached reads, mode selection, deltas, dedup, memory, multi-agent sharing | **74-99%** savings |
+| **Context Server** | 28 MCP tools for cached reads, mode selection, deltas, dedup, memory, multi-agent sharing | **74-99%** savings |
 | **AI Tool Hooks** | One-command integration via `lean-ctx init --agent <tool>` | Works everywhere |
 
 <br>

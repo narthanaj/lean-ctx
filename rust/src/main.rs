@@ -329,7 +329,7 @@ fn print_help() {
     println!(
         "lean-ctx {version} — The Intelligence Layer for AI Coding
 
-90+ compression patterns | 25 MCP tools | Context Continuity Protocol
+90+ compression patterns | 28 MCP tools | Context Continuity Protocol
 
 USAGE:
     lean-ctx                       Start MCP server (stdio)
