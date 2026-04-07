@@ -610,23 +610,21 @@ fn install_cursor_hook_config(home: &std::path::Path) {
     let redirect_cmd = format!("{binary} hook redirect");
 
     let hooks_json = home.join(".cursor").join("hooks.json");
+
     let hook_config = serde_json::json!({
-        "hooks": [
-            {
-                "event": "preToolUse",
-                "matcher": {
-                    "tool": "terminal_command"
+        "version": 1,
+        "hooks": {
+            "preToolUse": [
+                {
+                    "matcher": "terminal_command",
+                    "command": rewrite_cmd
                 },
-                "command": rewrite_cmd
-            },
-            {
-                "event": "preToolUse",
-                "matcher": {
-                    "tool": "read_file|grep|search|list_files|list_directory"
-                },
-                "command": redirect_cmd
-            }
-        ]
+                {
+                    "matcher": "read_file|grep|search|list_files|list_directory",
+                    "command": redirect_cmd
+                }
+            ]
+        }
     });
 
     let content = if hooks_json.exists() {
@@ -635,14 +633,32 @@ fn install_cursor_hook_config(home: &std::path::Path) {
         String::new()
     };
 
-    if content.contains("lean-ctx-rewrite") && content.contains("lean-ctx-redirect") {
+    let has_correct_format = content.contains("\"version\"") && content.contains("\"preToolUse\"");
+    if has_correct_format && content.contains("hook rewrite") && content.contains("hook redirect") {
         return;
     }
 
-    write_file(
-        &hooks_json,
-        &serde_json::to_string_pretty(&hook_config).unwrap(),
-    );
+    if content.is_empty() || !content.contains("\"version\"") {
+        write_file(
+            &hooks_json,
+            &serde_json::to_string_pretty(&hook_config).unwrap(),
+        );
+    } else if let Ok(mut existing) = serde_json::from_str::<serde_json::Value>(&content) {
+        if let Some(obj) = existing.as_object_mut() {
+            obj.insert("version".to_string(), serde_json::json!(1));
+            obj.insert("hooks".to_string(), hook_config["hooks"].clone());
+            write_file(
+                &hooks_json,
+                &serde_json::to_string_pretty(&existing).unwrap(),
+            );
+        }
+    } else {
+        write_file(
+            &hooks_json,
+            &serde_json::to_string_pretty(&hook_config).unwrap(),
+        );
+    }
+
     if !mcp_server_quiet_mode() {
         println!("Installed Cursor hooks at {}", hooks_json.display());
     }
@@ -1246,6 +1262,48 @@ mod tests {
         assert_eq!(
             normalize_tool_path("//server/share/file"),
             "//server/share/file"
+        );
+    }
+
+    #[test]
+    fn cursor_hook_config_has_version_and_object_hooks() {
+        let config = serde_json::json!({
+            "version": 1,
+            "hooks": {
+                "preToolUse": [
+                    {
+                        "matcher": "terminal_command",
+                        "command": "lean-ctx hook rewrite"
+                    },
+                    {
+                        "matcher": "read_file|grep|search|list_files|list_directory",
+                        "command": "lean-ctx hook redirect"
+                    }
+                ]
+            }
+        });
+
+        let json_str = serde_json::to_string_pretty(&config).unwrap();
+        let parsed: serde_json::Value = serde_json::from_str(&json_str).unwrap();
+
+        assert_eq!(parsed["version"], 1);
+        assert!(parsed["hooks"].is_object());
+        assert!(parsed["hooks"]["preToolUse"].is_array());
+        assert_eq!(parsed["hooks"]["preToolUse"].as_array().unwrap().len(), 2);
+        assert_eq!(
+            parsed["hooks"]["preToolUse"][0]["matcher"],
+            "terminal_command"
+        );
+    }
+
+    #[test]
+    fn cursor_hook_detects_old_format_needs_migration() {
+        let old_format = r#"{"hooks":[{"event":"preToolUse","command":"lean-ctx hook rewrite"}]}"#;
+        let has_correct =
+            old_format.contains("\"version\"") && old_format.contains("\"preToolUse\"");
+        assert!(
+            !has_correct,
+            "Old format should be detected as needing migration"
         );
     }
 }

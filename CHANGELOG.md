@@ -3,6 +3,12 @@
 All notable changes to lean-ctx are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [2.19.1] — 2026-04-07
+
+### Fixed
+- **Cursor hooks.json format** — Fixed invalid hooks.json that caused "Config version must be a number; Config hooks must be an object" error in Cursor. Now generates correct format with `"version": 1` and hooks as an object with `preToolUse` key instead of array. Existing broken configs are automatically migrated on next `lean-ctx install cursor` or MCP server start.
+- **cargo publish workflow** — Added `--allow-dirty` to release pipeline to prevent publish failures from checkout artifacts
+
 ## [2.19.0] — 2026-04-07
 
 ### Temporal Knowledge, Contradiction Detection, Agent Diaries & Cross-Session Search
