@@ -1,0 +1,106 @@
+{
+  "name": "lean-ctx",
+  "displayName": "lean-ctx — Token Intelligence",
+  "description": "Context Intelligence Engine for AI coding. Live token savings, one-click setup, 28 MCP tools. Reduces LLM token consumption by up to 99%.",
+  "version": "0.1.0",
+  "publisher": "yvgude",
+  "license": "MIT",
+  "icon": "media/icon.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yvgude/lean-ctx.git",
+    "directory": "packages/vscode-lean-ctx"
+  },
+  "homepage": "https://leanctx.com",
+  "bugs": {
+    "url": "https://github.com/yvgude/lean-ctx/issues"
+  },
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other",
+    "Machine Learning",
+    "Programming Languages"
+  ],
+  "keywords": [
+    "lean-ctx",
+    "token-optimization",
+    "mcp",
+    "ai",
+    "context-compression",
+    "copilot"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "lean-ctx.setup",
+        "title": "lean-ctx: Setup (auto-configure shell + editors)"
+      },
+      {
+        "command": "lean-ctx.doctor",
+        "title": "lean-ctx: Doctor (diagnostics)"
+      },
+      {
+        "command": "lean-ctx.gain",
+        "title": "lean-ctx: Show Token Savings"
+      },
+      {
+        "command": "lean-ctx.dashboard",
+        "title": "lean-ctx: Open Dashboard"
+      },
+      {
+        "command": "lean-ctx.heatmap",
+        "title": "lean-ctx: Show Context Heatmap"
+      },
+      {
+        "command": "lean-ctx.configureMcp",
+        "title": "lean-ctx: Configure MCP for Copilot"
+      }
+    ],
+    "configuration": {
+      "title": "lean-ctx",
+      "properties": {
+        "lean-ctx.binaryPath": {
+          "type": "string",
+          "default": "",
+          "description": "Path to lean-ctx binary (auto-detected if empty)"
+        },
+        "lean-ctx.autoSetup": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically configure MCP on activation"
+        },
+        "lean-ctx.statusBar": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show token savings in the status bar"
+        },
+        "lean-ctx.refreshInterval": {
+          "type": "number",
+          "default": 30,
+          "description": "Status bar refresh interval in seconds"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "lint": "eslint src --ext ts",
+    "test": "node ./out/test/runTest.js",
+    "package": "vsce package",
+    "publish": "vsce publish"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.85.0",
+    "@types/node": "^20.0.0",
+    "typescript": "^5.4.0",
+    "@vscode/vsce": "^3.0.0"
+  }
+}
