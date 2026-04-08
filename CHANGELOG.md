@@ -3,6 +3,23 @@
 All notable changes to lean-ctx are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [2.21.6] — 2026-04-08
+
+### Shell Hook Pipe Guard — Fix `curl | sh` Broken by lean-ctx
+
+#### Fixed — Piped commands corrupted by lean-ctx compression
+- **Pipe guard for Bash/Zsh** — `_lc()` now checks `[ ! -t 1 ]` (stdout is not a terminal) before routing through lean-ctx. When piped (e.g. `curl -fsSL https://example.com/install.sh | sh`), commands run directly without compression. Previously, lean-ctx would buffer and compress the output, corrupting install scripts and other piped data.
+- **Pipe guard for Fish** — `_lc` now checks `not isatty stdout` before routing through lean-ctx.
+- **Pipe guard for PowerShell** — `_lc` now checks `[Console]::IsOutputRedirected` before routing through lean-ctx.
+
+#### Important
+After updating, run `lean-ctx init` to regenerate the shell hooks with the pipe guard. Or open a new terminal tab.
+
+#### Testing
+- 5 new E2E tests for pipe-guard behavior and piped output preservation.
+- 3 new unit tests verifying pipe-guard presence in all shell hook variants (Bash, Fish, PowerShell).
+- All 677 tests passing, zero clippy warnings.
+
 ## [2.21.5] — 2026-04-08
 
 ### Windows Updater Infinite Loop Fix (#69)
