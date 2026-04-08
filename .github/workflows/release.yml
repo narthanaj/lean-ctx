@@ -99,6 +99,11 @@ jobs:
         with:
           merge-multiple: true
 
+      - name: Create stable source tarball
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          git archive --format=tar.gz --prefix="lean-ctx-${VERSION}/" "${GITHUB_REF_NAME}" -o "lean-ctx-${VERSION}-source.tar.gz"
+
       - name: Generate checksums
         run: sha256sum lean-ctx-*.tar.gz lean-ctx-*.zip > SHA256SUMS
 
