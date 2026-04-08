@@ -108,6 +108,12 @@ lean-ctx config set passthrough_urls localhost:3000,api.internal</code></pre>
         <td><code>[]</code></td>
         <td set:html={t('docsConfiguration.redirectExcludeDesc')} />
       </tr>
+      <tr>
+        <td><code>disabled_tools</code></td>
+        <td>list</td>
+        <td><code>[]</code></td>
+        <td>Exclude tools from the MCP tool list to reduce token overhead. Example: <code>["ctx_benchmark", "ctx_metrics", "ctx_wrapped"]</code>. Also available via <code>LEAN_CTX_DISABLED_TOOLS</code> env var (comma-separated).</td>
+      </tr>
     </tbody>
   </table>
 
@@ -160,6 +166,11 @@ lean-ctx config set passthrough_urls localhost:3000,api.internal</code></pre>
         <td>comma-separated globs</td>
         <td set:html={t('docsConfiguration.hookExcludeEnvDesc')} />
       </tr>
+      <tr>
+        <td><code>LEAN_CTX_DISABLED_TOOLS</code></td>
+        <td>comma-separated tool names</td>
+        <td>Exclude specific tools from the MCP tool list. Overrides <code>disabled_tools</code> in config.toml when set. Example: <code>ctx_benchmark,ctx_metrics,ctx_wrapped</code></td>
+      </tr>
     </tbody>
   </table>
 
@@ -173,6 +184,13 @@ redirect_exclude = [".wolf/**", ".claude/**", "*.json", "CLAUDE.md"]</code></pre
 
   <pre><code># Or via environment variable (takes precedence)
 export LEAN_CTX_HOOK_EXCLUDE=".wolf/**,.claude/**,*.json"</code></pre>
+
+  <h3>Binary File Passthrough (v2.21.0)</h3>
+  <p>
+    The hook redirect automatically detects binary files (images, PDFs, archives, fonts, videos,
+    compiled files) by extension and passes them through to the native Read tool. This ensures
+    AI agents can still view screenshots, images, and other non-text files without interference.
+  </p>
 
   <hr />
 
