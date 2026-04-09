@@ -991,7 +991,7 @@ fn backup_shell_config(path: &std::path::Path) {
     }
 }
 
-fn init_powershell(binary: &str) {
+pub fn init_powershell(binary: &str) {
     let profile_dir = dirs::home_dir().map(|h| h.join("Documents").join("PowerShell"));
     let profile_path = match profile_dir {
         Some(dir) => {
@@ -1105,7 +1105,7 @@ fn remove_lean_ctx_block_ps(content: &str) -> String {
     result
 }
 
-fn init_fish(binary: &str) {
+pub fn init_fish(binary: &str) {
     let config = dirs::home_dir()
         .map(|h| h.join(".config/fish/config.fish"))
         .unwrap_or_default();
@@ -1203,7 +1203,7 @@ fn init_fish(binary: &str) {
     }
 }
 
-fn init_posix(is_zsh: bool, binary: &str) {
+pub fn init_posix(is_zsh: bool, binary: &str) {
     let rc_file = if is_zsh {
         dirs::home_dir()
             .map(|h| h.join(".zshrc"))

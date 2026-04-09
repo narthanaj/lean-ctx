@@ -125,11 +125,28 @@ lean-ctx doctor
 | Commands broken? | Run `lean-ctx-off` (fixes current session) |
 | Permanent fix? | Run `lean-ctx uninstall` (removes all hooks) |
 | Binary missing? | Aliases auto-fallback to original commands (safe) |
+| Piped output garbled? | Update + run `lean-ctx setup` (adds pipe guard to shell hooks) |
 | Manual fix? | Edit `~/.zshrc`, remove the `lean-ctx shell hook` block |
 | Preview changes? | `lean-ctx init --global --dry-run` |
 | Diagnose? | `lean-ctx doctor` |
 
 lean-ctx creates a backup of your shell config before modifying it (`~/.zshrc.lean-ctx.bak`).
+
+</details>
+
+<details>
+<summary><strong>Updating lean-ctx</strong></summary>
+
+```bash
+lean-ctx update                # self-update (recommended — refreshes binary, hooks, and shell aliases)
+brew upgrade lean-ctx          # Homebrew
+npm update -g lean-ctx-bin     # npm
+cargo install lean-ctx         # Cargo (rebuild from source)
+```
+
+After updating, restart your shell (`source ~/.zshrc`) and IDE to activate the new version.
+
+> **Note:** Since v2.21.8, `lean-ctx update` automatically refreshes shell aliases in `~/.zshrc` / `~/.bashrc` / `config.fish`. If you update via Homebrew/npm/Cargo, run `lean-ctx setup` once to ensure your shell hooks are current.
 
 </details>
 

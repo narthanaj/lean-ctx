@@ -94,6 +94,32 @@ Use this checklist for every release. Copy the section below and check off each 
 - [ ] `gh issue list --repo yvgude/lean-ctx --state open` → 0 issues (or expected)
 - [ ] Close related GitHub issues with fix comment
 
+## Shell Hook Refresh (after every release)
+
+> **Shell aliases (`~/.zshrc`, `~/.bashrc`, `config.fish`) are NOT updated by binary install alone.**
+> Users must re-init to get new hook logic (e.g. pipe guard, new commands).
+
+- [ ] Verify `lean-ctx update` refreshes shell aliases automatically (since v2.21.8)
+- [ ] For Homebrew/npm/Cargo users: release notes must mention `lean-ctx setup` if hooks changed
+- [ ] Test locally: `lean-ctx update` → check `~/.zshrc` has latest `_lc()` function
+- [ ] If hooks changed significantly, add migration note to CHANGELOG
+
+### When hooks MUST be refreshed:
+- New commands added to alias list (e.g. adding `php`, `composer`)
+- `_lc()` function logic changed (e.g. pipe guard, new env vars)
+- New environment variables checked in hook (e.g. `LEAN_CTX_COMPRESS`)
+
+## README / GitHub Updates
+
+> **Check after every release whether README or GitHub repo needs updates.**
+
+- [ ] If new install method added → update "Get Started" section
+- [ ] If new CLI command added → update "Commands" section
+- [ ] If new editor supported → update "Supported editors" table
+- [ ] If breaking change in hooks → update "Troubleshooting" table
+- [ ] If new FAQ topic from issues → add FAQ entry
+- [ ] Verify badges in README show correct latest version (auto via shields.io)
+
 ## Release Notifications (Automatic)
 
 The GitHub webhook triggers Captain Hook on Discord when a release is **created**.
@@ -137,6 +163,8 @@ git checkout main
 - **npm/crates.io "already exists"**: Normal if re-tagging. `continue-on-error: true` prevents pipeline failure.
 - **macOS codesign**: After copying binary locally, run `codesign --force -s - <path>`
 - **pi-lean-ctx**: Does NOT need update for lean-ctx version bumps (binary is found dynamically)
+- **Shell hooks not updated after Homebrew/npm install**: Binary update does NOT touch `~/.zshrc`. Users must run `lean-ctx setup` or `lean-ctx init --global`. Only `lean-ctx update` auto-refreshes shell aliases (since v2.21.8).
+- **Pipe guard missing after update**: If `_lc()` in `~/.zshrc` doesn't contain `[ ! -t 1 ]`, the user has old hooks. Fix: `lean-ctx setup`
 
 ## Rollback Plan
 

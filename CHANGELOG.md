@@ -3,6 +3,25 @@
 All notable changes to lean-ctx are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [2.21.8] — 2026-04-09
+
+### Self-Updater Shell Alias Refresh + Thinking Budget Tuning
+
+#### Fixed — `lean-ctx update` now refreshes shell aliases automatically
+- **Shell alias auto-refresh** — `post_update_refresh()` now detects all shell configs (`~/.zshrc`, `~/.bashrc`, `config.fish`, PowerShell profile) with lean-ctx hooks and rewrites them with the latest `_lc()` function. Previously, `lean-ctx update` only refreshed AI tool hooks (Claude, Cursor, Gemini, Codex) but left shell aliases untouched, meaning users had to manually run `lean-ctx setup` to get new hook logic like the pipe guard.
+- **Multi-shell support** — If a user has hooks in both `.zshrc` and `.bashrc`, both are now updated (previously only the first match was handled).
+- **Post-update message** — Now explicitly tells users to `source ~/.zshrc` or restart their terminal.
+
+#### Changed — Thinking Budget Tuning
+- `FixBug` intent: Minimal → **Medium** (bug fixes benefit from deeper reasoning)
+- `Explore` intent: Medium → **Minimal** (exploration is lightweight)
+- `Debug` intent: Medium → **Trace** (debugging needs full chain-of-thought)
+- `Review` intent: Medium → **Trace** (code review needs thorough analysis)
+
+#### Improved — README & Deploy Checklist
+- **README** — Added "Updating lean-ctx" section with all update methods, added pipe guard troubleshooting entry.
+- **Deploy checklist** — Added "Shell Hook Refresh", "README / GitHub Updates" sections, and two new common pitfalls.
+
 ## [2.21.7] — 2026-04-09
 
 ### Cleanup + Website Redesign
