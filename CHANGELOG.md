@@ -3,6 +3,23 @@
 All notable changes to lean-ctx are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [2.21.10] — 2026-04-09
+
+### Fix: Auth/Device Code Flow Output Preserved
+
+#### Fixed — OAuth device code output no longer compressed (#71)
+- **Auth flow detection** — New `contains_auth_flow()` function detects OAuth device code flow output using a two-tier approach:
+  - **Strong signals** (match alone): `devicelogin`, `deviceauth`, `device_code`, `device code`, `device-code`, `verification_uri`, `user_code`, `one-time code`
+  - **Weak signals** (require URL in same output): `enter the code`, `use a web browser to open`, `verification code`, `waiting for authentication`, `authorize this device`, and 10 more patterns
+- **Shell hook passthrough** — 21 auth commands added to `BUILTIN_PASSTHROUGH`: `az login`, `gh auth`, `gcloud auth`, `aws sso`, `firebase login`, `vercel login`, `heroku login`, `flyctl auth`, `vault login`, `kubelogin`, `--use-device-code`, and more. These bypass compression entirely.
+- **MCP tool passthrough** — `ctx_shell::handle()` now checks output for auth flows before compression. If detected, full output is preserved with a `[lean-ctx: auth/device-code flow detected]` note.
+- **Shell hook buffered path** — `compress_if_beneficial()` also checks for auth flows before any compression, covering the `exec_buffered` path when stdout is not a TTY.
+
+#### Impact
+Previously, when Codex or Claude Code ran an auth command (e.g. `az login --use-device-code`), the device code was hidden from the user because lean-ctx compressed the output. Now the full output including auth codes is preserved.
+
+**Workaround for older versions:** Add `excluded_commands = ["az login"]` to `~/.lean-ctx/config.toml`, or prefix commands with `LEAN_CTX_DISABLED=1`.
+
 ## [2.21.9] — 2026-04-09
 
 ### First-Class MCP Support for Pi Coding Agent
