@@ -1,6 +1,6 @@
 # pi-lean-ctx
 
-[Pi Coding Agent](https://github.com/badlogic/pi-mono) extension with **first-class MCP support** — routes all tool output through [lean-ctx](https://leanctx.com) for **60–90% token savings** and exposes **25+ MCP tools** natively in Pi.
+[Pi Coding Agent](https://github.com/badlogic/pi-mono) extension with **first-class MCP support** — routes all tool output through [lean-ctx](https://leanctx.com) for **60–90% token savings** and exposes **34 MCP tools** natively in Pi.
 
 ## What it does
 
@@ -36,7 +36,7 @@ Additionally, pi-lean-ctx spawns lean-ctx as an MCP server and registers all adv
 | `ctx_delta` | Changed-lines-only reads |
 | `ctx_edit` | Read-modify-write in one call |
 | `ctx_dedup` | Duplicate context elimination |
-| `ctx_fill` | Template completion |
+| `ctx_fill` | Budget-aware context filling |
 | `ctx_intent` | Intent-based task routing |
 | `ctx_response` | Response optimization |
 | `ctx_wrapped` | Wrapped command execution |
@@ -44,8 +44,15 @@ Additionally, pi-lean-ctx spawns lean-ctx as an MCP server and registers all adv
 | `ctx_analyze` | Code analysis |
 | `ctx_cache` | Cache management |
 | `ctx_execute` | Direct command execution |
+| `ctx_impact` | Reverse dependency analysis |
+| `ctx_architecture` | Project architecture map |
+| `ctx_heatmap` | File access heatmap |
+| `ctx_task` | Task management |
+| `ctx_cost` | Cost attribution tracking |
+| `ctx_share` | Cross-agent context sharing |
+| `ctx_smart_read` | Adaptive mode selection |
 
-These MCP tools are the same ones available in Cursor, Claude Code, VS Code, and all other supported editors — now first-class in Pi.
+These MCP tools are the same ones available in Cursor, Claude Code, VS Code, and all other supported editors — now first-class in Pi. Tools are auto-discovered via MCP, so new tools added to lean-ctx are automatically available without updating this package.
 
 ## Install
 

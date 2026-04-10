@@ -52,7 +52,7 @@ export class McpBridge {
 
     this.client = new Client({
       name: "pi-lean-ctx",
-      version: "2.0.0",
+      version: "3.0.0",
     });
 
     this.transport.onclose = () => {
