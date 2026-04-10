@@ -230,6 +230,15 @@ impl LeanCtxServer {
             Self::append_tool_call_log(tool, duration_ms, original, saved, mode.as_deref(), &ts);
         }
 
+        crate::core::events::emit_tool_call(
+            tool,
+            original as u64,
+            saved as u64,
+            mode.clone(),
+            duration_ms,
+            None,
+        );
+
         let output_tokens = original.saturating_sub(saved);
         crate::core::stats::record(tool, original, output_tokens);
 

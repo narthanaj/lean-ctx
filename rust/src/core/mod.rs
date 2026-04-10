@@ -12,6 +12,7 @@ pub mod config;
 pub mod deps;
 pub mod entropy;
 pub mod error;
+pub mod events;
 pub mod feedback;
 pub mod filters;
 pub mod gotcha_tracker;

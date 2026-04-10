@@ -3,6 +3,54 @@
 All notable changes to lean-ctx are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [3.0.1] — 2026-04-10
+
+### LeanCTX Observatory — Real-Time Data Visualization Dashboard
+
+#### Added — Observatory Dashboard (`lean-ctx dashboard`)
+
+- **Event Bus** — New `EventKind`-based event system with ring buffer (1000 events) and JSONL persistence (`~/.lean-ctx/events.jsonl`) with auto-rotation at 10,000 lines. Captures `ToolCall`, `CacheHit`, `Compression`, `AgentAction`, `KnowledgeUpdate`, and `ThresholdShift` events in real time.
+- **Live Observatory** — Real-time event feed showing all tool calls, cache hits, compression operations, agent actions, and knowledge updates with token savings, mode tags, and file paths. Filter by category (Reads, Shell, Search, Cache).
+- **Knowledge Graph** — Interactive D3 force-directed graph visualizing project knowledge facts. Nodes sized by confidence, colored by category (Architecture, Testing, Debugging, etc.). Click nodes for detail panel showing temporal validity, confirmation count, and source session.
+- **Dependency Map** — Force-directed visualization of file dependencies extracted via tree-sitter. Nodes sized by token count, colored by language, with edges representing import relationships. Smart edge resolution for module-style imports (`api::Server` → file path).
+- **Compression Lab** — Side-by-side comparison of all compression modes (`map`, `signatures`, `aggressive`, `entropy`) for any file. Shows original content, compressed output, token savings percentage, and line reduction.
+- **Agent World** — Multi-agent monitoring panel showing active agents, pending messages, shared contexts, agent types, roles, and last active times.
+- **Bug Memory (Gotcha Tracker)** — Visual dashboard for auto-detected error patterns with severity, category, trigger/resolution, confidence scores, occurrence counts, and prevention statistics.
+- **Search Explorer** — BM25 search index visualization with language distribution chart, top chunks by token count, and symbol-level detail.
+- **Learning Curves** — Adaptive compression threshold visualization showing per-language entropy/Jaccard thresholds and compression outcome scatter plots (compression ratio vs. task success).
+
+#### Added — Terminal TUI (`lean-ctx watch`)
+
+- **`ratatui`-based Terminal UI** — Live event feed, file heatmap, token savings, and session stats in the terminal. Reads from `events.jsonl` with tail-based polling.
+
+#### Added — Event Instrumentation
+
+- `ctx_read`, `ctx_shell`, `ctx_search`, `ctx_tree` and all tools now emit `ToolCall` events with token counts, mode, duration, and path.
+- Cache hits emit `CacheHit` events with saved token counts.
+- `entropy_compress_adaptive()` emits `Compression` events with before/after line counts and strategy.
+- `AgentRegistry.register()` emits `AgentAction` events.
+- `ProjectKnowledge.remember()` emits `KnowledgeUpdate` events.
+- `FeedbackStore` emits `ThresholdShift` events when learned thresholds change significantly.
+
+#### Added — New Dashboard APIs
+
+- `GET /api/events` — Latest 200 events from JSONL file (cross-process visibility).
+- `GET /api/graph` — Full project dependency index.
+- `GET /api/feedback` — Compression feedback outcomes and learned thresholds.
+- `GET /api/session` — Current session state.
+- `GET /api/search-index` — BM25 index summary with language distribution and top chunks.
+- `GET /api/compression-demo?path=<file>` — On-demand compression of any file through all modes with original content preview.
+
+#### Fixed
+
+- **Live Observatory** showed "unknown" for all events due to flat vs. nested `kind` object mismatch — implemented `flattenEvent()` parser supporting all 6 event types.
+- **Agent World** status comparison was case-sensitive (`Active` vs `active`) — now case-insensitive.
+- **Learning Curves** scatter plot showed 0 for x-axis — now computes compression ratio from `tokens_saved / tokens_original` when `compression_ratio` field is absent.
+- **Compression Lab** failed to load files — added `rust/` prefix fallback for path resolution and `original` content field in API response.
+- **Dependency Map** edges not connecting — added module-to-file path resolution for `api::Server`-style import targets.
+
+---
+
 ## [3.0.0] — 2026-04-10
 
 ### Major Release: Waves 1-5 — Intelligence Engine, Knowledge Graph, A2A Protocol, Adaptive Compression

@@ -18,6 +18,7 @@ aur/
 memory-bank/
 server.md
 
+.lean-ctx/
 .DS_Store
 DISCORD_POST.md
 DEPLOY_CHECKLIST.md

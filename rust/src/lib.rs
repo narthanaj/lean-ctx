@@ -17,4 +17,5 @@ pub mod shell;
 pub mod terminal_ui;
 pub mod tool_defs;
 pub mod tools;
+pub mod tui;
 pub mod uninstall;

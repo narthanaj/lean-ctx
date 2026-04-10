@@ -208,6 +208,14 @@ impl BM25Index {
         let data = std::fs::read_to_string(path).ok()?;
         serde_json::from_str(&data).ok()
     }
+
+    pub fn load_or_build(root: &Path) -> Self {
+        Self::load(root).unwrap_or_else(|| {
+            let built = Self::build_from_directory(root);
+            let _ = built.save(root);
+            built
+        })
+    }
 }
 
 fn index_dir(root: &Path) -> PathBuf {
