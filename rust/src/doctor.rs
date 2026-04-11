@@ -578,8 +578,8 @@ fn tool_adoption_outcome() -> Outcome {
         };
     }
 
-    let data_tools_used = total_mode_calls > 0
-        && cep.modes.keys().any(|k| k != "overview" && k != "metrics");
+    let data_tools_used =
+        total_mode_calls > 0 && cep.modes.keys().any(|k| k != "overview" && k != "metrics");
 
     if shell_commands > 20 && !data_tools_used {
         return Outcome {
