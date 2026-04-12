@@ -23,6 +23,13 @@ const sidebar = [
       { label: 'ctx_edit', href: lp('/docs/tools/intelligence') + '#ctx_edit' },
       { label: 'ctx_preload', href: lp('/docs/tools/intelligence') + '#ctx_preload' },
       { label: 'ctx_semantic_search', href: lp('/docs/tools/intelligence') + '#ctx_semantic_search' },
+      { label: 'ctx_symbol', href: lp('/docs/tools/intelligence') + '#ctx_symbol' },
+      { label: 'ctx_outline', href: lp('/docs/tools/intelligence') + '#ctx_outline' },
+      { label: 'ctx_callers', href: lp('/docs/tools/intelligence') + '#ctx_callers' },
+      { label: 'ctx_callees', href: lp('/docs/tools/intelligence') + '#ctx_callees' },
+      { label: 'ctx_routes', href: lp('/docs/tools/intelligence') + '#ctx_routes' },
+      { label: 'ctx_graph_diagram', href: lp('/docs/tools/intelligence') + '#ctx_graph_diagram' },
+      { label: 'ctx_compress_memory', href: lp('/docs/tools/intelligence') + '#ctx_compress_memory' },
       { label: 'ctx_impact', href: lp('/docs/tools/intelligence') + '#ctx_impact' },
       { label: 'ctx_architecture', href: lp('/docs/tools/intelligence') + '#ctx_architecture' },
     ],
@@ -293,8 +300,7 @@ const sidebar = [
 
   <h2 id="ctx_semantic_search">ctx_semantic_search</h2>
   <p>
-    BM25-based code search that finds symbols, patterns, and code by meaning across the project.
-    Supports reindexing for fresh results.
+    <span set:html={t('docsToolsIntelligence.semanticSearchUpdatedDesc')} />
   </p>
   <h3>{t('docsToolsCore.parameters')}</h3>
   <ul>
@@ -302,6 +308,9 @@ const sidebar = [
     <li><code>path</code> (optional) — project root to search</li>
     <li><code>top_k</code> (optional) — number of results (default 10)</li>
     <li><code>action</code> (optional) — <code>reindex</code> to rebuild index</li>
+    <li><code>mode</code> (optional) — <code>hybrid</code> (default), <code>dense</code>, <code>bm25</code></li>
+    <li><code>languages</code> (optional) — restrict to language/extension (e.g. <code>["rust","ts"]</code>)</li>
+    <li><code>path_glob</code> (optional) — glob filter over relative paths (e.g. <code>"rust/src/**"</code>)</li>
   </ul>
   <h3>Example</h3>
   <pre><code>ctx_semantic_search query="JWT token validation" top_k=5
@@ -309,6 +318,63 @@ const sidebar = [
   1. src/auth.ts:18-42 — verifyJWT function (score: 0.89)
   2. src/middleware.ts:5-20 — auth middleware (score: 0.76)
   3. src/lib/jwt.ts:1-35 — JWT utilities (score: 0.71)</code></pre>
+
+  <h2 id="ctx_symbol">ctx_symbol</h2>
+  <p set:html={t('docsToolsIntelligence.ctxSymbolDesc')} />
+  <h3>{t('docsToolsCore.parameters')}</h3>
+  <ul>
+    <li><code>name</code> (required) — symbol name</li>
+    <li><code>file</code> (optional) — narrow by file path</li>
+    <li><code>kind</code> (optional) — <code>fn</code>, <code>struct</code>, <code>class</code>, <code>method</code>, <code>trait</code>, <code>enum</code></li>
+  </ul>
+
+  <h2 id="ctx_outline">ctx_outline</h2>
+  <p set:html={t('docsToolsIntelligence.ctxOutlineDesc')} />
+  <h3>{t('docsToolsCore.parameters')}</h3>
+  <ul>
+    <li><code>path</code> (required) — file path</li>
+    <li><code>kind</code> (optional) — filter by kind</li>
+  </ul>
+
+  <h2 id="ctx_callers">ctx_callers</h2>
+  <p set:html={t('docsToolsIntelligence.ctxCallersDesc')} />
+  <h3>{t('docsToolsCore.parameters')}</h3>
+  <ul>
+    <li><code>symbol</code> (required) — symbol name to find callers of</li>
+    <li><code>file</code> (optional) — filter by caller file</li>
+  </ul>
+
+  <h2 id="ctx_callees">ctx_callees</h2>
+  <p set:html={t('docsToolsIntelligence.ctxCalleesDesc')} />
+  <h3>{t('docsToolsCore.parameters')}</h3>
+  <ul>
+    <li><code>symbol</code> (required) — symbol name to list callees for</li>
+    <li><code>file</code> (optional) — filter by caller file</li>
+  </ul>
+
+  <h2 id="ctx_routes">ctx_routes</h2>
+  <p set:html={t('docsToolsIntelligence.ctxRoutesDesc')} />
+  <h3>{t('docsToolsCore.parameters')}</h3>
+  <ul>
+    <li><code>method</code> (optional) — HTTP method (GET, POST, ...)</li>
+    <li><code>path</code> (optional) — path prefix (e.g. <code>/api</code>)</li>
+  </ul>
+
+  <h2 id="ctx_graph_diagram">ctx_graph_diagram</h2>
+  <p set:html={t('docsToolsIntelligence.ctxGraphDiagramDesc')} />
+  <h3>{t('docsToolsCore.parameters')}</h3>
+  <ul>
+    <li><code>kind</code> (optional) — <code>deps</code> (default) or <code>calls</code></li>
+    <li><code>file</code> (optional) — focus filter</li>
+    <li><code>depth</code> (optional) — max depth (default 2)</li>
+  </ul>
+
+  <h2 id="ctx_compress_memory">ctx_compress_memory</h2>
+  <p set:html={t('docsToolsIntelligence.ctxCompressMemoryDesc')} />
+  <h3>{t('docsToolsCore.parameters')}</h3>
+  <ul>
+    <li><code>path</code> (required) — file path to compress</li>
+  </ul>
 
   <h2 id="ctx_impact">ctx_impact — Reverse Dependency Analysis</h2>
   <p>
