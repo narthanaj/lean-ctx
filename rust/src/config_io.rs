@@ -6,15 +6,19 @@ fn backup_path_for(path: &Path) -> Option<PathBuf> {
 }
 
 pub fn write_atomic_with_backup(path: &Path, content: &str) -> Result<(), String> {
-    if let Some(parent) = path.parent() {
-        std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
-    }
-
     if path.exists() {
         if let Some(bak) = backup_path_for(path) {
             // Best-effort backup; if it fails we still attempt the write.
             let _ = std::fs::copy(path, &bak);
         }
+    }
+
+    write_atomic(path, content)
+}
+
+pub fn write_atomic(path: &Path, content: &str) -> Result<(), String> {
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
     }
 
     let parent = path
