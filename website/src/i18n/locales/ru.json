@@ -2601,5 +2601,36 @@
   "docsRemoteSetup.troubleDiagnostics": "Запустите диагностику на удалённой машине",
   "docsRemoteSetup.troubleDiagnosticsDesc": "Используйте <code>lean-ctx doctor</code> на удалённом сервере, чтобы проверить установку, shell‑хуки и конфигурацию MCP:",
   "nav.docs.remoteSetup": "Удалённая настройка",
-  "nav.docs.remoteSetupDesc": "SSH‑туннели, Docker и конфигурация удалённого сервера"
+  "nav.docs.remoteSetupDesc": "SSH‑туннели, Docker и конфигурация удалённого сервера",
+
+  "nav.docs.ideSetup": "Настройка IDE",
+  "nav.docs.ideSetupDesc": "Исправьте MCP + хуки в Cursor, Claude, VS Code и других",
+
+  "docsIdeSetup.title": "Настройка IDE и устранение неполадок",
+  "docsIdeSetup.description": "Сделайте lean-ctx надёжным в IDE и инструментах AI coding.",
+  "docsIdeSetup.sidebarTitle": "Настройка IDE",
+  "docsIdeSetup.sidebarOverview": "Обзор",
+  "docsIdeSetup.sidebarOneShot": "Быстрое исправление",
+  "docsIdeSetup.sidebarMatrix": "Матрица IDE",
+  "docsIdeSetup.sidebarTroubleshooting": "Устранение неполадок",
+
+  "docsIdeSetup.intro": "lean-ctx интегрируется через <strong>два слоя</strong>: (1) shell hook для CLI‑компрессии (<code>lean-ctx init</code>) и (2) конфигурацию MCP‑сервера для вашей IDE/агента (<code>lean-ctx setup</code> или <code>lean-ctx init --agent ...</code>). Эта страница помогает быстро восстановиться после самых частых поломок после обновлений.",
+  "docsIdeSetup.oneShotTitle": "Быстрое исправление",
+  "docsIdeSetup.oneShotDesc": "Если после обновления что-то сломалось, выполните эти команды по порядку:",
+  "docsIdeSetup.oneShotNote": "После настройки IDE <strong>полностью перезапустите IDE</strong>, чтобы она переподключилась к MCP. Изменения MCP не применяются к уже запущенному процессу.",
+
+  "docsIdeSetup.matrixTitle": "Матрица IDE",
+  "docsIdeSetup.matrixDesc": "Типичные пути конфигурации MCP и самая быстрая команда для исправления:",
+  "docsIdeSetup.thTool": "Инструмент",
+  "docsIdeSetup.thMcpConfig": "MCP‑конфиг",
+  "docsIdeSetup.thFixCommand": "Команда исправления",
+  "docsIdeSetup.matrixNote": "Если сомневаетесь, запустите <code>lean-ctx doctor</code> — он выведет, что обнаружил и что нужно исправить.",
+
+  "docsIdeSetup.troubleshootingTitle": "Устранение неполадок",
+  "docsIdeSetup.troubleZeroSavedTitle": "Показывает 0 сэкономленных токенов",
+  "docsIdeSetup.troubleZeroSavedDesc": "Обычно это значит, что ваш AI‑клиент ещё не использует MCP‑инструменты (настроены, но не используются), или вы выполнили слишком мало команд после последнего сброса. Диагностика и сброс:",
+  "docsIdeSetup.troubleStalePathTitle": "MCP‑конфиг указывает на старый путь к бинарнику",
+  "docsIdeSetup.troubleStalePathDesc": "Если вы сменили способ установки (Homebrew ↔ cargo ↔ install.sh), обновите запись MCP так, чтобы <code>command</code> указывал на актуальный <code>lean-ctx</code>:",
+  "docsIdeSetup.troubleBrewLinkTitle": "Homebrew link падает (бинарник уже существует)",
+  "docsIdeSetup.troubleBrewLinkDesc": "Если ранее устанавливали через <code>cargo install</code>, Homebrew может не суметь сделать link. Перезапишите link:"
 }

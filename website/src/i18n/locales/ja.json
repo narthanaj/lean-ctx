@@ -2601,5 +2601,36 @@
   "docsRemoteSetup.troubleDiagnostics": "リモートで診断を実行",
   "docsRemoteSetup.troubleDiagnosticsDesc": "リモートサーバーで <code>lean-ctx doctor</code> を実行し、インストール、シェルフック、MCP 設定を確認します：",
   "nav.docs.remoteSetup": "リモート設定",
-  "nav.docs.remoteSetupDesc": "SSH トンネル、Docker、リモートサーバー設定"
+  "nav.docs.remoteSetupDesc": "SSH トンネル、Docker、リモートサーバー設定",
+
+  "nav.docs.ideSetup": "IDE セットアップ",
+  "nav.docs.ideSetupDesc": "Cursor、Claude、VS Code などの MCP + フックを修復",
+
+  "docsIdeSetup.title": "IDE セットアップ & トラブルシューティング",
+  "docsIdeSetup.description": "IDEs と AI コーディングツールで lean-ctx を安定稼働させます。",
+  "docsIdeSetup.sidebarTitle": "IDE セットアップ",
+  "docsIdeSetup.sidebarOverview": "概要",
+  "docsIdeSetup.sidebarOneShot": "クイック修復",
+  "docsIdeSetup.sidebarMatrix": "IDE マトリクス",
+  "docsIdeSetup.sidebarTroubleshooting": "トラブルシューティング",
+
+  "docsIdeSetup.intro": "lean-ctx は <strong>2 つのレイヤー</strong>で統合されます：(1) CLI 圧縮のためのシェルフック（<code>lean-ctx init</code>）と、(2) IDE/エージェント向けの MCP サーバー設定（<code>lean-ctx setup</code> または <code>lean-ctx init --agent ...</code>）。このページはアップデート後に起きがちな不具合を素早く復旧するためのガイドです。",
+  "docsIdeSetup.oneShotTitle": "クイック修復",
+  "docsIdeSetup.oneShotDesc": "アップデート後に壊れた場合は、次のコマンドをこの順番で実行してください：",
+  "docsIdeSetup.oneShotNote": "IDE を設定した後は MCP 再接続のために <strong>IDE を完全に再起動</strong>してください。MCP の変更は既に起動中のプロセスには反映されません。",
+
+  "docsIdeSetup.matrixTitle": "IDE マトリクス",
+  "docsIdeSetup.matrixDesc": "代表的な MCP 設定場所と最速の修復コマンド：",
+  "docsIdeSetup.thTool": "ツール",
+  "docsIdeSetup.thMcpConfig": "MCP 設定",
+  "docsIdeSetup.thFixCommand": "修復コマンド",
+  "docsIdeSetup.matrixNote": "迷ったら <code>lean-ctx doctor</code> を実行してください — 検出結果と修復手順が表示されます。",
+
+  "docsIdeSetup.troubleshootingTitle": "トラブルシューティング",
+  "docsIdeSetup.troubleZeroSavedTitle": "0 tokens saved と表示される",
+  "docsIdeSetup.troubleZeroSavedDesc": "多くの場合、AI クライアントがまだ MCP ツールを利用していない（設定済みだが採用されていない）か、前回のリセット以降に十分なコマンドを実行していません。診断とリセット：",
+  "docsIdeSetup.troubleStalePathTitle": "MCP 設定が古いバイナリパスを指している",
+  "docsIdeSetup.troubleStalePathDesc": "インストール方法を切り替えた場合（Homebrew ↔ cargo ↔ install.sh）、MCP エントリを更新して <code>command</code> が現在の <code>lean-ctx</code> を指すようにしてください：",
+  "docsIdeSetup.troubleBrewLinkTitle": "Homebrew link が失敗（バイナリが既に存在）",
+  "docsIdeSetup.troubleBrewLinkDesc": "以前に <code>cargo install</code> で入れていると Homebrew の link が失敗することがあります。link を上書きします："
 }

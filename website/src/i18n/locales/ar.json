@@ -2601,5 +2601,36 @@
   "docsRemoteSetup.troubleDiagnostics": "تشغيل التشخيص على الخادم البعيد",
   "docsRemoteSetup.troubleDiagnosticsDesc": "استخدم <code>lean-ctx doctor</code> على الخادم البعيد للتحقق من التثبيت وhooks الخاصة بالـ shell وإعداد MCP:",
   "nav.docs.remoteSetup": "إعداد عن بُعد",
-  "nav.docs.remoteSetupDesc": "أنفاق SSH وDocker وإعداد خوادم بعيدة"
+  "nav.docs.remoteSetupDesc": "أنفاق SSH وDocker وإعداد خوادم بعيدة",
+
+  "nav.docs.ideSetup": "إعداد IDE",
+  "nav.docs.ideSetupDesc": "إصلاح MCP وHooks عبر Cursor وClaude وVS Code والمزيد",
+
+  "docsIdeSetup.title": "إعداد IDE واستكشاف الأخطاء",
+  "docsIdeSetup.description": "اجعل lean-ctx يعمل بشكل موثوق عبر IDEs وأدوات البرمجة بالذكاء الاصطناعي.",
+  "docsIdeSetup.sidebarTitle": "إعداد IDE",
+  "docsIdeSetup.sidebarOverview": "نظرة عامة",
+  "docsIdeSetup.sidebarOneShot": "إصلاح سريع",
+  "docsIdeSetup.sidebarMatrix": "مصفوفة IDE",
+  "docsIdeSetup.sidebarTroubleshooting": "استكشاف الأخطاء",
+
+  "docsIdeSetup.intro": "يتكامل lean-ctx عبر <strong>طبقتين</strong>: (1) Shell Hook لضغط CLI (<code>lean-ctx init</code>) و(2) إعداد خادم MCP لبيئة IDE/الوكيل (<code>lean-ctx setup</code> أو <code>lean-ctx init --agent ...</code>). تساعدك هذه الصفحة على إصلاح الأعطال الأكثر شيوعاً بعد التحديثات.",
+  "docsIdeSetup.oneShotTitle": "إصلاح سريع",
+  "docsIdeSetup.oneShotDesc": "إذا تعطل شيء بعد تحديث، نفّذ هذه الأوامر بالترتيب:",
+  "docsIdeSetup.oneShotNote": "بعد تهيئة IDE، <strong>أعد تشغيل IDE بالكامل</strong> ليعيد الاتصال بـ MCP. تغييرات MCP لا تنطبق على عملية تعمل مسبقاً.",
+
+  "docsIdeSetup.matrixTitle": "مصفوفة IDE",
+  "docsIdeSetup.matrixDesc": "أماكن إعداد MCP الشائعة وأسرع أمر لإصلاحها:",
+  "docsIdeSetup.thTool": "الأداة",
+  "docsIdeSetup.thMcpConfig": "إعداد MCP",
+  "docsIdeSetup.thFixCommand": "أمر الإصلاح",
+  "docsIdeSetup.matrixNote": "إذا لم تكن متأكداً، شغّل <code>lean-ctx doctor</code> — سيطبع ما اكتشفه وما يجب إصلاحه.",
+
+  "docsIdeSetup.troubleshootingTitle": "استكشاف الأخطاء",
+  "docsIdeSetup.troubleZeroSavedTitle": "يعرض 0 رموز موفّرة",
+  "docsIdeSetup.troubleZeroSavedDesc": "غالباً يعني أن عميل الذكاء الاصطناعي لا يستخدم أدوات MCP بعد (مُعدّة لكن غير مُعتمدة)، أو أنك لم تنفّذ أوامر كافية منذ آخر إعادة ضبط. شخّص وأعد الضبط:",
+  "docsIdeSetup.troubleStalePathTitle": "إعداد MCP يشير إلى مسار قديم للملف التنفيذي",
+  "docsIdeSetup.troubleStalePathDesc": "إذا غيّرت طريقة التثبيت (Homebrew ↔ cargo ↔ install.sh)، حدّث إدخال MCP بحيث يشير <code>command</code> إلى <code>lean-ctx</code> الحالي:",
+  "docsIdeSetup.troubleBrewLinkTitle": "فشل Homebrew link (الملف التنفيذي موجود بالفعل)",
+  "docsIdeSetup.troubleBrewLinkDesc": "إذا ثبّت مسبقاً عبر <code>cargo install</code> فقد يفشل Homebrew في الربط. اكتب فوق الرابط:"
 }

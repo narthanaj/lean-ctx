@@ -2601,5 +2601,36 @@
   "docsRemoteSetup.troubleDiagnostics": "रिमोट पर diagnostics चलाएँ",
   "docsRemoteSetup.troubleDiagnosticsDesc": "रिमोट सर्वर पर <code>lean-ctx doctor</code> चलाकर installation, shell hooks और MCP configuration सत्यापित करें:",
   "nav.docs.remoteSetup": "रिमोट सेटअप",
-  "nav.docs.remoteSetupDesc": "SSH टनल, Docker और रिमोट सर्वर कॉन्फ़िगरेशन"
+  "nav.docs.remoteSetupDesc": "SSH टनल, Docker और रिमोट सर्वर कॉन्फ़िगरेशन",
+
+  "nav.docs.ideSetup": "IDE सेटअप",
+  "nav.docs.ideSetupDesc": "Cursor, Claude, VS Code आदि में MCP + hooks ठीक करें",
+
+  "docsIdeSetup.title": "IDE सेटअप और ट्रबलशूटिंग",
+  "docsIdeSetup.description": "IDEs और AI coding टूल्स में lean-ctx को भरोसेमंद बनाएं।",
+  "docsIdeSetup.sidebarTitle": "IDE सेटअप",
+  "docsIdeSetup.sidebarOverview": "ओवरव्यू",
+  "docsIdeSetup.sidebarOneShot": "क्विक फिक्स",
+  "docsIdeSetup.sidebarMatrix": "IDE मैट्रिक्स",
+  "docsIdeSetup.sidebarTroubleshooting": "ट्रबलशूटिंग",
+
+  "docsIdeSetup.intro": "lean-ctx <strong>दो लेयर्स</strong> के जरिए इंटीग्रेट होता है: (1) CLI कम्प्रेशन के लिए shell hook (<code>lean-ctx init</code>) और (2) आपके IDE/agent के लिए MCP server configuration (<code>lean-ctx setup</code> या <code>lean-ctx init --agent ...</code>)। यह पेज अपडेट के बाद होने वाली सबसे आम टूट-फूट से जल्दी रिकवर करने में मदद करता है।",
+  "docsIdeSetup.oneShotTitle": "क्विक फिक्स",
+  "docsIdeSetup.oneShotDesc": "अगर अपडेट के बाद कुछ टूट गया, तो ये कमांड इस क्रम में चलाएँ:",
+  "docsIdeSetup.oneShotNote": "IDE कॉन्फ़िगर करने के बाद MCP से दोबारा कनेक्ट होने के लिए <strong>IDE को पूरी तरह रीस्टार्ट करें</strong>। MCP बदलाव पहले से चल रहे प्रोसेस पर लागू नहीं होते।",
+
+  "docsIdeSetup.matrixTitle": "IDE मैट्रिक्स",
+  "docsIdeSetup.matrixDesc": "कॉमन MCP config लोकेशन्स और सबसे तेज़ फिक्स कमांड:",
+  "docsIdeSetup.thTool": "टूल",
+  "docsIdeSetup.thMcpConfig": "MCP config",
+  "docsIdeSetup.thFixCommand": "फिक्स कमांड",
+  "docsIdeSetup.matrixNote": "अगर आप सुनिश्चित नहीं हैं, <code>lean-ctx doctor</code> चलाएँ — यह बताता है कि क्या डिटेक्ट हुआ और क्या ठीक करना है।",
+
+  "docsIdeSetup.troubleshootingTitle": "ट्रबलशूटिंग",
+  "docsIdeSetup.troubleZeroSavedTitle": "0 tokens saved दिखाता है",
+  "docsIdeSetup.troubleZeroSavedDesc": "आमतौर पर इसका मतलब है कि आपका AI क्लाइंट अभी MCP tools इस्तेमाल नहीं कर रहा (कॉन्फ़िगर है लेकिन adopt नहीं हुआ), या आपने आख़िरी reset के बाद पर्याप्त कमांड नहीं चलाए। Diagnose और reset करें:",
+  "docsIdeSetup.troubleStalePathTitle": "MCP config पुराने binary path पर पॉइंट करता है",
+  "docsIdeSetup.troubleStalePathDesc": "अगर आपने install method बदला (Homebrew ↔ cargo ↔ install.sh), तो MCP entry अपडेट करें ताकि <code>command</code> मौजूदा <code>lean-ctx</code> पर पॉइंट करे:",
+  "docsIdeSetup.troubleBrewLinkTitle": "Homebrew link फेल (binary पहले से मौजूद)",
+  "docsIdeSetup.troubleBrewLinkDesc": "अगर आपने पहले <code>cargo install</code> से इंस्टॉल किया था, तो Homebrew link करने में फेल हो सकता है। लिंक overwrite करें:"
 }

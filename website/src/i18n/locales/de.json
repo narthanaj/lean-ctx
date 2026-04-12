@@ -2599,5 +2599,36 @@
   "docsRemoteSetup.troubleDiagnostics": "Diagnose auf dem Remote ausführen",
   "docsRemoteSetup.troubleDiagnosticsDesc": "Nutze <code>lean-ctx doctor</code> auf dem Remote-Server, um Installation, Shell-Hooks und MCP-Konfiguration zu prüfen:",
   "nav.docs.remoteSetup": "Remote Setup",
-  "nav.docs.remoteSetupDesc": "SSH-Tunnels, Docker und Remote-Server-Konfiguration"
+  "nav.docs.remoteSetupDesc": "SSH-Tunnels, Docker und Remote-Server-Konfiguration",
+
+  "nav.docs.ideSetup": "IDE Setup",
+  "nav.docs.ideSetupDesc": "MCP + Hooks für Cursor, Claude, VS Code und mehr reparieren",
+
+  "docsIdeSetup.title": "IDE Setup & Troubleshooting",
+  "docsIdeSetup.description": "lean-ctx zuverlässig in IDEs und AI-Coding-Tools betreiben.",
+  "docsIdeSetup.sidebarTitle": "IDE Setup",
+  "docsIdeSetup.sidebarOverview": "Übersicht",
+  "docsIdeSetup.sidebarOneShot": "One-shot Fix",
+  "docsIdeSetup.sidebarMatrix": "IDE-Matrix",
+  "docsIdeSetup.sidebarTroubleshooting": "Fehlerbehebung",
+
+  "docsIdeSetup.intro": "lean-ctx integriert sich über <strong>zwei Ebenen</strong>: (1) Shell Hook für CLI-Kompression (<code>lean-ctx init</code>) und (2) MCP-Server-Konfiguration für deine IDE/Agent (<code>lean-ctx setup</code> oder <code>lean-ctx init --agent ...</code>). Diese Seite hilft dir, die häufigsten Brüche nach Updates schnell zu beheben.",
+  "docsIdeSetup.oneShotTitle": "One-shot Fix",
+  "docsIdeSetup.oneShotDesc": "Wenn nach einem Update etwas kaputt ging, führe diese Commands in dieser Reihenfolge aus:",
+  "docsIdeSetup.oneShotNote": "Nach IDE-Konfiguration bitte die IDE <strong>komplett neu starten</strong>, damit sie MCP neu verbindet. MCP-Änderungen greifen nicht in einem bereits laufenden Prozess.",
+
+  "docsIdeSetup.matrixTitle": "IDE-Matrix",
+  "docsIdeSetup.matrixDesc": "Typische MCP-Konfigurationspfade und der schnellste Fix-Command:",
+  "docsIdeSetup.thTool": "Tool",
+  "docsIdeSetup.thMcpConfig": "MCP-Config",
+  "docsIdeSetup.thFixCommand": "Fix Command",
+  "docsIdeSetup.matrixNote": "Wenn du unsicher bist: <code>lean-ctx doctor</code> zeigt dir, was erkannt wurde und was du fixen musst.",
+
+  "docsIdeSetup.troubleshootingTitle": "Fehlerbehebung",
+  "docsIdeSetup.troubleZeroSavedTitle": "Es zeigt 0 Tokens saved",
+  "docsIdeSetup.troubleZeroSavedDesc": "Meist werden MCP-Tools vom AI-Client noch nicht genutzt (konfiguriert, aber nicht adoptiert), oder du hast seit dem letzten Reset zu wenig Commands ausgeführt. Diagnose und Reset:",
+  "docsIdeSetup.troubleStalePathTitle": "MCP-Config zeigt auf einen alten Binary-Pfad",
+  "docsIdeSetup.troubleStalePathDesc": "Wenn du die Installationsmethode gewechselt hast (Homebrew ↔ cargo ↔ install.sh), update den MCP-Entry, damit <code>command</code> auf das aktuelle <code>lean-ctx</code> zeigt:",
+  "docsIdeSetup.troubleBrewLinkTitle": "Homebrew link schlägt fehl (Binary existiert bereits)",
+  "docsIdeSetup.troubleBrewLinkDesc": "Wenn du vorher via <code>cargo install</code> installiert hast, kann Homebrew beim Linken scheitern. Überschreibe den Link:"
 }

@@ -2601,5 +2601,36 @@
   "docsRemoteSetup.troubleDiagnostics": "রিমোটে ডায়াগনস্টিক চালান",
   "docsRemoteSetup.troubleDiagnosticsDesc": "রিমোট সার্ভারে <code>lean-ctx doctor</code> চালিয়ে ইনস্টলেশন, শেল হুক এবং MCP কনফিগারেশন যাচাই করুন:",
   "nav.docs.remoteSetup": "রিমোট সেটআপ",
-  "nav.docs.remoteSetupDesc": "SSH টানেল, Docker ও রিমোট সার্ভার কনফিগারেশন"
+  "nav.docs.remoteSetupDesc": "SSH টানেল, Docker ও রিমোট সার্ভার কনফিগারেশন",
+
+  "nav.docs.ideSetup": "IDE সেটআপ",
+  "nav.docs.ideSetupDesc": "Cursor, Claude, VS Code ইত্যাদিতে MCP + hook ঠিক করুন",
+
+  "docsIdeSetup.title": "IDE সেটআপ ও ট্রাবলশুটিং",
+  "docsIdeSetup.description": "IDEs ও AI coding টুলে lean-ctx নির্ভরযোগ্যভাবে চালান।",
+  "docsIdeSetup.sidebarTitle": "IDE সেটআপ",
+  "docsIdeSetup.sidebarOverview": "ওভারভিউ",
+  "docsIdeSetup.sidebarOneShot": "কুইক ফিক্স",
+  "docsIdeSetup.sidebarMatrix": "IDE ম্যাট্রিক্স",
+  "docsIdeSetup.sidebarTroubleshooting": "ট্রাবলশুটিং",
+
+  "docsIdeSetup.intro": "lean-ctx <strong>দুটি লেয়ার</strong> দিয়ে ইন্টিগ্রেট হয়: (1) CLI কম্প্রেশনের জন্য shell hook (<code>lean-ctx init</code>) এবং (2) আপনার IDE/agent-এর জন্য MCP server কনফিগ (<code>lean-ctx setup</code> বা <code>lean-ctx init --agent ...</code>)। এই পেজটি আপডেটের পরে সবচেয়ে সাধারণ ভাঙাগুলো দ্রুত ঠিক করতে সাহায্য করে।",
+  "docsIdeSetup.oneShotTitle": "কুইক ফিক্স",
+  "docsIdeSetup.oneShotDesc": "আপডেটের পরে কিছু ভেঙে গেলে, এই কমান্ডগুলো এই ক্রমে চালান:",
+  "docsIdeSetup.oneShotNote": "একটি IDE কনফিগার করার পরে, MCP রিকানেক্টের জন্য <strong>IDE পুরোপুরি রিস্টার্ট করুন</strong>। MCP পরিবর্তন চলমান প্রসেসে প্রয়োগ হয় না।",
+
+  "docsIdeSetup.matrixTitle": "IDE ম্যাট্রিক্স",
+  "docsIdeSetup.matrixDesc": "কমন MCP কনফিগ লোকেশন এবং দ্রুততম ফিক্স কমান্ড:",
+  "docsIdeSetup.thTool": "টুল",
+  "docsIdeSetup.thMcpConfig": "MCP কনফিগ",
+  "docsIdeSetup.thFixCommand": "ফিক্স কমান্ড",
+  "docsIdeSetup.matrixNote": "যদি নিশ্চিত না হন, <code>lean-ctx doctor</code> চালান — এটি কী ডিটেক্ট করেছে এবং কী ঠিক করতে হবে তা প্রিন্ট করে।",
+
+  "docsIdeSetup.troubleshootingTitle": "ট্রাবলশুটিং",
+  "docsIdeSetup.troubleZeroSavedTitle": "0 tokens saved দেখায়",
+  "docsIdeSetup.troubleZeroSavedDesc": "সাধারণত মানে AI ক্লায়েন্ট এখনও MCP টুল ব্যবহার করছে না (কনফিগ আছে কিন্তু adopt হয়নি), অথবা শেষ reset-এর পরে আপনি যথেষ্ট কমান্ড চালাননি। ডায়াগনস ও রিসেট:",
+  "docsIdeSetup.troubleStalePathTitle": "MCP কনফিগ পুরনো binary path দেখায়",
+  "docsIdeSetup.troubleStalePathDesc": "আপনি ইনস্টল মেথড বদলালে (Homebrew ↔ cargo ↔ install.sh), MCP এন্ট্রি আপডেট করুন যাতে <code>command</code> বর্তমান <code>lean-ctx</code> এ পয়েন্ট করে:",
+  "docsIdeSetup.troubleBrewLinkTitle": "Homebrew link ফেইল (binary আগে থেকেই আছে)",
+  "docsIdeSetup.troubleBrewLinkDesc": "আগে <code>cargo install</code> দিয়ে ইনস্টল করলে Homebrew link করতে ব্যর্থ হতে পারে। লিংক ওভাররাইট করুন:"
 }

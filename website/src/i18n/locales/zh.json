@@ -2599,5 +2599,36 @@
   "docsRemoteSetup.troubleDiagnostics": "在远端运行诊断",
   "docsRemoteSetup.troubleDiagnosticsDesc": "在远程服务器上运行 <code>lean-ctx doctor</code>，以验证安装、shell hook 以及 MCP 配置：",
   "nav.docs.remoteSetup": "远程设置",
-  "nav.docs.remoteSetupDesc": "SSH 隧道、Docker 与远程服务器配置"
+  "nav.docs.remoteSetupDesc": "SSH 隧道、Docker 与远程服务器配置",
+
+  "nav.docs.ideSetup": "IDE 设置",
+  "nav.docs.ideSetupDesc": "修复 Cursor、Claude、VS Code 等的 MCP + hooks",
+
+  "docsIdeSetup.title": "IDE 设置与故障排查",
+  "docsIdeSetup.description": "让 lean-ctx 在 IDE 与 AI 编程工具中稳定可靠运行。",
+  "docsIdeSetup.sidebarTitle": "IDE 设置",
+  "docsIdeSetup.sidebarOverview": "概览",
+  "docsIdeSetup.sidebarOneShot": "一键修复",
+  "docsIdeSetup.sidebarMatrix": "IDE 矩阵",
+  "docsIdeSetup.sidebarTroubleshooting": "故障排查",
+
+  "docsIdeSetup.intro": "lean-ctx 通过 <strong>两层</strong>集成：(1) 用于 CLI 压缩的 shell hook（<code>lean-ctx init</code>）以及 (2) 面向 IDE/agent 的 MCP server 配置（<code>lean-ctx setup</code> 或 <code>lean-ctx init --agent ...</code>）。本页帮助你在更新后快速恢复最常见的故障。",
+  "docsIdeSetup.oneShotTitle": "一键修复",
+  "docsIdeSetup.oneShotDesc": "如果更新后出现问题，请按顺序执行以下命令：",
+  "docsIdeSetup.oneShotNote": "配置完成后，请 <strong>完全重启 IDE</strong> 以重新连接 MCP。MCP 的变更不会应用到已在运行的进程。",
+
+  "docsIdeSetup.matrixTitle": "IDE 矩阵",
+  "docsIdeSetup.matrixDesc": "常见 MCP 配置位置以及最快修复命令：",
+  "docsIdeSetup.thTool": "工具",
+  "docsIdeSetup.thMcpConfig": "MCP 配置",
+  "docsIdeSetup.thFixCommand": "修复命令",
+  "docsIdeSetup.matrixNote": "不确定时运行 <code>lean-ctx doctor</code> — 它会输出检测结果与需要修复的项。",
+
+  "docsIdeSetup.troubleshootingTitle": "故障排查",
+  "docsIdeSetup.troubleZeroSavedTitle": "显示节省 0 token",
+  "docsIdeSetup.troubleZeroSavedDesc": "这通常意味着你的 AI 客户端尚未真正使用 MCP 工具（已配置但未采用），或者自上次重置后执行的命令不够多。诊断与重置：",
+  "docsIdeSetup.troubleStalePathTitle": "MCP 配置指向旧的二进制路径",
+  "docsIdeSetup.troubleStalePathDesc": "如果你切换了安装方式（Homebrew ↔ cargo ↔ install.sh），请更新 MCP 条目，让 <code>command</code> 指向当前的 <code>lean-ctx</code>：",
+  "docsIdeSetup.troubleBrewLinkTitle": "Homebrew link 失败（二进制已存在）",
+  "docsIdeSetup.troubleBrewLinkDesc": "如果你之前通过 <code>cargo install</code> 安装，Homebrew 可能无法 link。覆盖链接："
 }
