@@ -67,7 +67,8 @@ deploy-cloud-api:
         fi
 
         echo "[1/3] Building API image..."
-        docker build --no-cache -t lean-ctx-cloud-api -f cloud-infra/Dockerfile.cloud-api .
+        docker rmi lean-ctx-cloud-api 2>/dev/null || true
+        DOCKER_BUILDKIT=0 docker build --no-cache -t lean-ctx-cloud-api -f cloud-infra/Dockerfile.cloud-api .
 
         echo "[2/3] Restarting API container..."
         docker stop lean-ctx-cloud-api || true
