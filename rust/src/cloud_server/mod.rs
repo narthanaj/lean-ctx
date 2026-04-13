@@ -8,7 +8,8 @@ mod stats;
 
 use axum::routing::{get, post};
 use axum::Router;
-use tower_http::cors::{AllowOrigin, Any, CorsLayer};
+use axum::http::{HeaderName, Method};
+use tower_http::cors::{AllowOrigin, CorsLayer};
 
 pub async fn run() -> anyhow::Result<()> {
     let cfg = config::Config::from_env()?;
@@ -28,8 +29,15 @@ pub async fn run() -> anyhow::Result<()> {
             "https://leanctx.com".parse().unwrap(),
             "https://www.leanctx.com".parse().unwrap(),
         ]))
-        .allow_methods(Any)
-        .allow_headers(Any)
+        .allow_methods([
+            Method::GET,
+            Method::POST,
+            Method::OPTIONS,
+        ])
+        .allow_headers([
+            HeaderName::from_static("content-type"),
+            HeaderName::from_static("authorization"),
+        ])
         .allow_credentials(true);
 
     let app = Router::new()
