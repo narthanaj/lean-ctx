@@ -195,6 +195,15 @@ pub async fn exchange_magic_link(
     Ok(res)
 }
 
+pub async fn logout() -> impl IntoResponse {
+    let cookie = "leanctx_session=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0";
+    let mut res = axum::response::Response::new(axum::body::Body::from("ok"));
+    *res.status_mut() = StatusCode::OK;
+    res.headers_mut()
+        .insert(axum::http::header::SET_COOKIE, cookie.parse().unwrap());
+    res
+}
+
 #[derive(Serialize, Deserialize)]
 struct Claims {
     sub: String,
