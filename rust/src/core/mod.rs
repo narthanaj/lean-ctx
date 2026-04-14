@@ -16,6 +16,7 @@ pub mod embedding_index;
 pub mod embeddings;
 pub mod entropy;
 pub mod error;
+pub mod eval;
 pub mod events;
 pub mod feedback;
 pub mod filters;
