@@ -369,7 +369,7 @@ fn print_help() {
     println!(
         "lean-ctx {version} — The Intelligence Layer for AI Coding
 
-90+ compression patterns | 28 MCP tools | Context Continuity Protocol
+90+ compression patterns | 36 MCP tools | Context Continuity Protocol
 
 USAGE:
     lean-ctx                       Start MCP server (stdio)
@@ -476,10 +476,11 @@ EXAMPLES:
     lean-ctx grep \"pub fn\" src/
     lean-ctx deps .
 
-CLOUD:
-    cloud status                   Show cloud connection status
+CLOUD (https://leanctx.com/dashboard):
     login <email>                  Register/login to LeanCTX Cloud
-    sync                           Upload local stats to cloud dashboard
+    sync                           Sync all data to cloud (stats, knowledge, buddy, etc.)
+    cloud status                   Show cloud connection status
+    cloud pull-models              Update adaptive compression models from cloud
     contribute                     Share anonymized compression data
 
 TROUBLESHOOTING:
@@ -1007,16 +1008,16 @@ fn cmd_cloud(args: &[String]) {
 
     match action {
         "pull-models" => {
-            if !cloud_client::check_pro() {
-                println!("Adaptive models are not available for your account.");
+            if !cloud_client::is_cloud_user() {
+                println!("Cloud models require a cloud account. Run: lean-ctx login <email>");
                 return;
             }
             println!("Updating adaptive models...");
-            match cloud_client::pull_pro_models() {
+            match cloud_client::pull_cloud_models() {
                 Ok(data) => {
                     let count = data["models"].as_array().map(|a| a.len()).unwrap_or(0);
 
-                    if let Err(e) = cloud_client::save_pro_models(&data) {
+                    if let Err(e) = cloud_client::save_cloud_models(&data) {
                         eprintln!("Warning: Could not save models: {e}");
                         return;
                     }

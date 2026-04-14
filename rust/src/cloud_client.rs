@@ -194,9 +194,9 @@ pub fn push_knowledge(entries: &[serde_json::Value]) -> Result<String, String> {
     ))
 }
 
-pub fn pull_pro_models() -> Result<serde_json::Value, String> {
+pub fn pull_cloud_models() -> Result<serde_json::Value, String> {
     let api_key = load_api_key().ok_or("Not logged in. Run: lean-ctx login <email>")?;
-    let url = format!("{}/api/pro/models", api_url());
+    let url = format!("{}/api/cloud/models", api_url());
 
     let resp = ureq::get(&url)
         .header("Authorization", &format!("Bearer {api_key}"))
@@ -218,23 +218,23 @@ pub fn pull_pro_models() -> Result<serde_json::Value, String> {
     serde_json::from_str(&resp_body).map_err(|e| format!("Invalid response: {e}"))
 }
 
-pub fn save_pro_models(data: &serde_json::Value) -> std::io::Result<()> {
+pub fn save_cloud_models(data: &serde_json::Value) -> std::io::Result<()> {
     let dir = config_dir();
     std::fs::create_dir_all(&dir)?;
     let json = serde_json::to_string_pretty(data).map_err(std::io::Error::other)?;
-    std::fs::write(dir.join("pro_models.json"), json)
+    std::fs::write(dir.join("cloud_models.json"), json)
 }
 
-pub fn load_pro_models() -> Option<serde_json::Value> {
-    let path = config_dir().join("pro_models.json");
+pub fn load_cloud_models() -> Option<serde_json::Value> {
+    let path = config_dir().join("cloud_models.json");
     let data = std::fs::read_to_string(path).ok()?;
     serde_json::from_str(&data).ok()
 }
 
-pub fn check_pro() -> bool {
+pub fn is_cloud_user() -> bool {
     let path = config_dir().join("plan.txt");
     std::fs::read_to_string(path)
-        .map(|p| matches!(p.trim(), "pro" | "cloud"))
+        .map(|p| matches!(p.trim(), "cloud" | "pro"))
         .unwrap_or(false)
 }
 

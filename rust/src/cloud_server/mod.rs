@@ -84,7 +84,6 @@ pub async fn run() -> anyhow::Result<()> {
         )
         .route("/api/global-stats", get(global_stats::get_global_stats))
         .route("/api/cloud/models", get(models::get_models))
-        .route("/api/pro/models", get(models::get_models))
         .with_state(state)
         .layer(cors);
 

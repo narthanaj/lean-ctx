@@ -49,8 +49,8 @@ pub fn cloud_background_tasks() {
         }
 
         if !already_pulled {
-            if let Ok(data) = crate::cloud_client::pull_pro_models() {
-                let _ = crate::cloud_client::save_pro_models(&data);
+            if let Ok(data) = crate::cloud_client::pull_cloud_models() {
+                let _ = crate::cloud_client::save_cloud_models(&data);
                 config.cloud.last_model_pull = Some(today.clone());
             }
         }
