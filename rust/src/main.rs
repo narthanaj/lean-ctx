@@ -561,7 +561,7 @@ fn cmd_login(args: &[String]) {
         Ok(r) => {
             if let Err(e) = cloud_client::save_credentials(&r.api_key, &r.user_id, &email) {
                 eprintln!("Warning: Could not save credentials: {e}");
-                eprintln!("Your API key: {}", r.api_key);
+                eprintln!("API key generated but could not be saved. Re-run login to retry.");
                 return;
             }
             if let Ok(plan) = cloud_client::fetch_plan() {
@@ -596,7 +596,7 @@ fn cmd_sync() {
         println!("No stats to sync yet.");
     } else {
         match cloud_client::sync_stats(&entries) {
-            Ok(msg) => println!("  Stats: {msg}"),
+            Ok(_) => println!("  Stats: {} entries synced", entries.len()),
             Err(e) => eprintln!("  Stats sync failed: {e}"),
         }
     }
@@ -607,7 +607,7 @@ fn cmd_sync() {
         println!("  No command data to sync.");
     } else {
         match cloud_client::push_commands(&command_entries) {
-            Ok(msg) => println!("  Commands: {msg}"),
+            Ok(_) => println!("  Commands: {} entries synced", command_entries.len()),
             Err(e) => eprintln!("  Commands sync failed: {e}"),
         }
     }
@@ -618,7 +618,7 @@ fn cmd_sync() {
         println!("  No CEP sessions to sync.");
     } else {
         match cloud_client::push_cep(&cep_entries) {
-            Ok(msg) => println!("  CEP: {msg}"),
+            Ok(_) => println!("  CEP: {} sessions synced", cep_entries.len()),
             Err(e) => eprintln!("  CEP sync failed: {e}"),
         }
     }
@@ -629,7 +629,7 @@ fn cmd_sync() {
         println!("  No knowledge to sync.");
     } else {
         match cloud_client::push_knowledge(&knowledge_entries) {
-            Ok(msg) => println!("  Knowledge: {msg}"),
+            Ok(_) => println!("  Knowledge: {} entries synced", knowledge_entries.len()),
             Err(e) => eprintln!("  Knowledge sync failed: {e}"),
         }
     }
@@ -640,7 +640,7 @@ fn cmd_sync() {
         println!("  No gotchas to sync.");
     } else {
         match cloud_client::push_gotchas(&gotcha_entries) {
-            Ok(msg) => println!("  Gotchas: {msg}"),
+            Ok(_) => println!("  Gotchas: {} entries synced", gotcha_entries.len()),
             Err(e) => eprintln!("  Gotchas sync failed: {e}"),
         }
     }
@@ -649,7 +649,7 @@ fn cmd_sync() {
     let buddy = core::buddy::BuddyState::compute();
     let buddy_data = serde_json::to_value(&buddy).unwrap_or_default();
     match cloud_client::push_buddy(&buddy_data) {
-        Ok(msg) => println!("  Buddy: {msg}"),
+        Ok(_) => println!("  Buddy: synced"),
         Err(e) => eprintln!("  Buddy sync failed: {e}"),
     }
 
@@ -659,7 +659,7 @@ fn cmd_sync() {
         println!("  No feedback thresholds to sync.");
     } else {
         match cloud_client::push_feedback(&feedback_entries) {
-            Ok(msg) => println!("  Feedback: {msg}"),
+            Ok(_) => println!("  Feedback: {} thresholds synced", feedback_entries.len()),
             Err(e) => eprintln!("  Feedback sync failed: {e}"),
         }
     }
