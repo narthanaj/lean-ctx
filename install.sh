@@ -7,7 +7,22 @@
 #   ./install.sh --build-only   # build only, don't install
 #
 # One-liner (no Rust required):
-#   curl -fsSL https://leanctx.com/install.sh | sh
+#   curl -fsSL https://leanctx.com/install.sh | bash
+
+# POSIX-compatible guard: must come before any bash-specific syntax.
+# If invoked by a non-bash shell (e.g. `curl ... | sh` on Debian/Ubuntu where
+# /bin/sh is dash), print a clear message instead of a cryptic dash error.
+if [ -z "${BASH_VERSION:-}" ]; then
+  echo "Error: lean-ctx installer requires bash." >&2
+  echo "" >&2
+  echo "Please re-run with bash:" >&2
+  echo "  curl -fsSL https://leanctx.com/install.sh | bash" >&2
+  echo "" >&2
+  echo "Or download and run directly:" >&2
+  echo "  curl -fsSL -o install.sh https://leanctx.com/install.sh && bash install.sh" >&2
+  exit 1
+fi
+
 set -euo pipefail
 
 REPO="yvgude/lean-ctx"

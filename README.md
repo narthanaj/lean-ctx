@@ -105,7 +105,7 @@ AI coding tools like **Cursor**, **Claude Code**, **GitHub Copilot**, **Windsurf
 
 ```bash
 # 1. Install (pick one)
-curl -fsSL https://leanctx.com/install.sh | sh     # universal, no Rust needed
+curl -fsSL https://leanctx.com/install.sh | bash   # universal, no Rust needed
 brew tap yvgude/lean-ctx && brew install lean-ctx    # macOS / Linux
 npm install -g lean-ctx-bin                          # Node.js
 cargo install lean-ctx                               # Rust
