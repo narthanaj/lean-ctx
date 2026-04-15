@@ -12,9 +12,10 @@ pub fn refresh_installed_hooks() {
         None => return,
     };
 
-    let claude_hooks = home.join(".claude/hooks/lean-ctx-rewrite.sh").exists()
-        || home.join(".claude/settings.json").exists()
-            && std::fs::read_to_string(home.join(".claude/settings.json"))
+    let claude_dir = crate::setup::claude_config_dir(&home);
+    let claude_hooks = claude_dir.join("hooks/lean-ctx-rewrite.sh").exists()
+        || claude_dir.join("settings.json").exists()
+            && std::fs::read_to_string(claude_dir.join("settings.json"))
                 .unwrap_or_default()
                 .contains("lean-ctx");
 
@@ -409,7 +410,10 @@ fn install_claude_global_md(home: &std::path::Path) {
 
     let existing = std::fs::read_to_string(&global_md).unwrap_or_default();
     if existing.contains("lean-ctx") {
-        println!("  \x1b[32m✓\x1b[0m ~/.claude/CLAUDE.md already configured");
+        println!(
+            "  \x1b[32m✓\x1b[0m {}/CLAUDE.md already configured",
+            claude_dir.display()
+        );
         return;
     }
 
@@ -426,7 +430,10 @@ fn install_claude_global_md(home: &std::path::Path) {
         merged.push_str(content);
         write_file(&global_md, &merged);
     }
-    println!("  \x1b[32m✓\x1b[0m Installed global ~/.claude/CLAUDE.md");
+    println!(
+        "  \x1b[32m✓\x1b[0m Installed global {}/CLAUDE.md",
+        claude_dir.display()
+    );
 }
 
 fn install_claude_hook_scripts(home: &std::path::Path) {

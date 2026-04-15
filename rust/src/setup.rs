@@ -374,7 +374,22 @@ pub fn configure_agent_mcp(agent: &str) -> Result<(), String> {
     }
 
     for t in &targets {
-        let _ = write_config(t, &binary)?;
+        let action = write_config(t, &binary)?;
+        let path_display = t.config_path.display();
+        match action {
+            WriteAction::Created => println!(
+                "  \x1b[32m✓\x1b[0m {}: MCP config created at {path_display}",
+                t.name
+            ),
+            WriteAction::Updated => println!(
+                "  \x1b[32m✓\x1b[0m {}: MCP config updated at {path_display}",
+                t.name
+            ),
+            WriteAction::Already => println!(
+                "  \x1b[32m✓\x1b[0m {}: already configured at {path_display}",
+                t.name
+            ),
+        }
     }
 
     if agent == "kiro" {
@@ -569,22 +584,11 @@ fn build_targets(home: &std::path::Path, _binary: &str) -> Vec<EditorTarget> {
 }
 
 /// Returns the path to Claude Code's MCP config JSON.
-/// Respects `$CLAUDE_CONFIG_DIR` (official Claude Code env var).
-/// Falls back to `~/.claude.json`.
+/// Respects `$CLAUDE_CONFIG_DIR` — Claude Code always creates `.claude.json`
+/// inside that directory. Falls back to `~/.claude.json`.
 pub fn claude_config_json_path(home: &std::path::Path) -> PathBuf {
     if let Ok(dir) = std::env::var("CLAUDE_CONFIG_DIR") {
-        let custom = PathBuf::from(&dir);
-        let json_in_dir = custom.join(".claude.json");
-        if json_in_dir.exists() {
-            return json_in_dir;
-        }
-        let parent_json = custom.parent().map(|p| p.join(".claude.json"));
-        if let Some(pj) = &parent_json {
-            if pj.exists() {
-                return pj.clone();
-            }
-        }
-        return json_in_dir;
+        return PathBuf::from(dir).join(".claude.json");
     }
     home.join(".claude.json")
 }

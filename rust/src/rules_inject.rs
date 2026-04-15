@@ -401,7 +401,7 @@ fn build_rules_targets(home: &std::path::Path) -> Vec<RulesTarget> {
         // --- Shared config files (append-only) ---
         RulesTarget {
             name: "Claude Code",
-            path: home.join(".claude/CLAUDE.md"),
+            path: crate::setup::claude_config_dir(home).join("CLAUDE.md"),
             format: RulesFormat::SharedMarkdown,
         },
         RulesTarget {

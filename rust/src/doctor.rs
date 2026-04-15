@@ -274,7 +274,7 @@ fn shell_aliases_outcome() -> Outcome {
 
 struct McpLocation {
     name: &'static str,
-    display: &'static str,
+    display: String,
     path: PathBuf,
 }
 
@@ -282,17 +282,17 @@ fn mcp_config_locations(home: &std::path::Path) -> Vec<McpLocation> {
     let mut locations = vec![
         McpLocation {
             name: "Cursor",
-            display: "~/.cursor/mcp.json",
+            display: "~/.cursor/mcp.json".into(),
             path: home.join(".cursor").join("mcp.json"),
         },
         McpLocation {
             name: "Claude Code",
-            display: "~/.claude.json",
+            display: format!("{}", crate::setup::claude_config_json_path(home).display()),
             path: crate::setup::claude_config_json_path(home),
         },
         McpLocation {
             name: "Windsurf",
-            display: "~/.codeium/windsurf/mcp_config.json",
+            display: "~/.codeium/windsurf/mcp_config.json".into(),
             path: home
                 .join(".codeium")
                 .join("windsurf")
@@ -300,17 +300,17 @@ fn mcp_config_locations(home: &std::path::Path) -> Vec<McpLocation> {
         },
         McpLocation {
             name: "Codex",
-            display: "~/.codex/config.toml",
+            display: "~/.codex/config.toml".into(),
             path: home.join(".codex").join("config.toml"),
         },
         McpLocation {
             name: "Gemini CLI",
-            display: "~/.gemini/settings/mcp.json",
+            display: "~/.gemini/settings/mcp.json".into(),
             path: home.join(".gemini").join("settings").join("mcp.json"),
         },
         McpLocation {
             name: "Antigravity",
-            display: "~/.gemini/antigravity/mcp_config.json",
+            display: "~/.gemini/antigravity/mcp_config.json".into(),
             path: home
                 .join(".gemini")
                 .join("antigravity")
@@ -323,44 +323,44 @@ fn mcp_config_locations(home: &std::path::Path) -> Vec<McpLocation> {
         let zed_cfg = home.join(".config").join("zed").join("settings.json");
         locations.push(McpLocation {
             name: "Zed",
-            display: "~/.config/zed/settings.json",
+            display: "~/.config/zed/settings.json".into(),
             path: zed_cfg,
         });
     }
 
     locations.push(McpLocation {
         name: "Qwen Code",
-        display: "~/.qwen/mcp.json",
+        display: "~/.qwen/mcp.json".into(),
         path: home.join(".qwen").join("mcp.json"),
     });
     locations.push(McpLocation {
         name: "Trae",
-        display: "~/.trae/mcp.json",
+        display: "~/.trae/mcp.json".into(),
         path: home.join(".trae").join("mcp.json"),
     });
     locations.push(McpLocation {
         name: "Amazon Q",
-        display: "~/.aws/amazonq/mcp.json",
+        display: "~/.aws/amazonq/mcp.json".into(),
         path: home.join(".aws").join("amazonq").join("mcp.json"),
     });
     locations.push(McpLocation {
         name: "JetBrains",
-        display: "~/.jb-mcp.json",
+        display: "~/.jb-mcp.json".into(),
         path: home.join(".jb-mcp.json"),
     });
     locations.push(McpLocation {
         name: "AWS Kiro",
-        display: "~/.kiro/settings/mcp.json",
+        display: "~/.kiro/settings/mcp.json".into(),
         path: home.join(".kiro").join("settings").join("mcp.json"),
     });
     locations.push(McpLocation {
         name: "Verdent",
-        display: "~/.verdent/mcp.json",
+        display: "~/.verdent/mcp.json".into(),
         path: home.join(".verdent").join("mcp.json"),
     });
     locations.push(McpLocation {
         name: "Crush",
-        display: "~/.config/crush/crush.json",
+        display: "~/.config/crush/crush.json".into(),
         path: home.join(".config").join("crush").join("crush.json"),
     });
 
@@ -383,7 +383,7 @@ fn mcp_config_locations(home: &std::path::Path) -> Vec<McpLocation> {
 
         locations.push(McpLocation {
             name: "OpenCode",
-            display: opencode_display,
+            display: opencode_display.into(),
             path: opencode_cfg,
         });
     }
@@ -393,7 +393,7 @@ fn mcp_config_locations(home: &std::path::Path) -> Vec<McpLocation> {
         let vscode_mcp = home.join("Library/Application Support/Code/User/mcp.json");
         locations.push(McpLocation {
             name: "VS Code / Copilot",
-            display: "~/Library/Application Support/Code/User/mcp.json",
+            display: "~/Library/Application Support/Code/User/mcp.json".into(),
             path: vscode_mcp,
         });
     }
@@ -402,7 +402,7 @@ fn mcp_config_locations(home: &std::path::Path) -> Vec<McpLocation> {
         let vscode_mcp = home.join(".config/Code/User/mcp.json");
         locations.push(McpLocation {
             name: "VS Code / Copilot",
-            display: "~/.config/Code/User/mcp.json",
+            display: "~/.config/Code/User/mcp.json".into(),
             path: vscode_mcp,
         });
     }
@@ -412,7 +412,7 @@ fn mcp_config_locations(home: &std::path::Path) -> Vec<McpLocation> {
             let vscode_mcp = std::path::PathBuf::from(appdata).join("Code/User/mcp.json");
             locations.push(McpLocation {
                 name: "VS Code / Copilot",
-                display: "%APPDATA%/Code/User/mcp.json",
+                display: "%APPDATA%/Code/User/mcp.json".into(),
                 path: vscode_mcp,
             });
         }
