@@ -1407,6 +1407,25 @@ fn extract_search_pattern_from_command(command: &str) -> Option<String> {
     None
 }
 
+/// Hard cap on captured stdout + stderr from a child process, per stream.
+/// Prevents a command producing gigabytes of output (e.g. `yes`, `cat /dev/urandom`,
+/// or a runaway build log) from OOM-ing the host before compression runs.
+/// Applied at capture time (bounded read), not post-read truncation.
+///
+/// 2 MiB per stream (stdout + stderr separately) = 4 MiB total worst case,
+/// which is well within the bounds of what compression can handle without
+/// memory pressure. Override via `LCTX_MAX_SHELL_BYTES` for users with
+/// genuinely large build outputs.
+const MAX_SHELL_CAPTURE_BYTES: u64 = 2 * 1024 * 1024;
+
+pub fn max_shell_capture_bytes() -> u64 {
+    std::env::var("LCTX_MAX_SHELL_BYTES")
+        .ok()
+        .and_then(|s| s.parse().ok())
+        .filter(|n: &u64| *n > 0)
+        .unwrap_or(MAX_SHELL_CAPTURE_BYTES)
+}
+
 fn execute_command_in(command: &str, cwd: &str) -> (String, i32) {
     let (shell, flag) = crate::shell::shell_and_flag();
     let normalized_cmd = crate::tools::ctx_shell::normalize_command_for_shell(command);
@@ -1414,28 +1433,79 @@ fn execute_command_in(command: &str, cwd: &str) -> (String, i32) {
     let mut cmd = std::process::Command::new(&shell);
     cmd.arg(&flag)
         .arg(&normalized_cmd)
-        .env("LEAN_CTX_ACTIVE", "1");
+        .env("LEAN_CTX_ACTIVE", "1")
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped());
     if dir.is_dir() {
         cmd.current_dir(dir);
     }
-    let output = cmd.output();
 
-    match output {
-        Ok(out) => {
-            let code = out.status.code().unwrap_or(1);
-            let stdout = String::from_utf8_lossy(&out.stdout);
-            let stderr = String::from_utf8_lossy(&out.stderr);
-            let text = if stdout.is_empty() {
-                stderr.to_string()
-            } else if stderr.is_empty() {
-                stdout.to_string()
-            } else {
-                format!("{stdout}\n{stderr}")
-            };
-            (text, code)
-        }
-        Err(e) => (format!("ERROR: {e}"), 1),
+    let mut child = match cmd.spawn() {
+        Ok(c) => c,
+        Err(e) => return (format!("ERROR: {e}"), 127),
+    };
+
+    // Capture stdout and stderr in parallel with bounded readers. Reading
+    // them sequentially would deadlock if one pipe fills its kernel buffer
+    // (typically 64 KiB) while we're draining the other.
+    let cap = max_shell_capture_bytes();
+    let stdout_pipe = child.stdout.take();
+    let stderr_pipe = child.stderr.take();
+
+    let stdout_handle = std::thread::spawn(move || read_pipe_bounded(stdout_pipe, cap));
+    let stderr_handle = std::thread::spawn(move || read_pipe_bounded(stderr_pipe, cap));
+
+    let (stdout_bytes, stdout_truncated) = stdout_handle.join().unwrap_or_default();
+    let (stderr_bytes, stderr_truncated) = stderr_handle.join().unwrap_or_default();
+
+    // If either stream hit the cap, the child may still be producing output
+    // into the now-dead pipe. Wait briefly, then kill.
+    if stdout_truncated || stderr_truncated {
+        // Give the child 100ms to notice the broken pipe and exit.
+        std::thread::sleep(std::time::Duration::from_millis(100));
+        let _ = child.kill();
     }
+
+    let code = child.wait().map(|s| s.code().unwrap_or(1)).unwrap_or(1);
+    let stdout = String::from_utf8_lossy(&stdout_bytes);
+    let stderr = String::from_utf8_lossy(&stderr_bytes);
+
+    let mut text = if stdout.is_empty() {
+        stderr.to_string()
+    } else if stderr.is_empty() {
+        stdout.to_string()
+    } else {
+        format!("{stdout}\n{stderr}")
+    };
+
+    if stdout_truncated || stderr_truncated {
+        text.push_str("\n[lean-ctx: output truncated — exceeded MAX_SHELL_CAPTURE_BYTES]");
+    }
+
+    (text, code)
+}
+
+/// Read from a piped stream up to `cap` bytes. Returns `(bytes, truncated)`.
+/// The pipe is dropped when done, which signals EPIPE to the child if it's
+/// still writing — the caller handles kill-on-truncation.
+pub fn read_pipe_bounded(
+    pipe: Option<impl std::io::Read>,
+    cap: u64,
+) -> (Vec<u8>, bool) {
+    let Some(pipe) = pipe else {
+        return (Vec::new(), false);
+    };
+    use std::io::Read;
+    let mut buf = Vec::with_capacity(cap.min(64 * 1024) as usize);
+    let _ = pipe.take(cap).read_to_end(&mut buf);
+
+    // Attempt one more byte to detect truncation (same technique as
+    // pathjail::read_capped).
+    // But we already consumed `cap` bytes from `take()`, so we need
+    // to read from the original reader — which was consumed by `take()`.
+    // Instead, detect truncation by checking buf.len() == cap.
+    let truncated = buf.len() as u64 >= cap;
+    (buf, truncated)
 }
 
 pub fn tool_descriptions_for_test() -> Vec<(&'static str, &'static str)> {

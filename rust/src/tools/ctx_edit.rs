@@ -1,6 +1,7 @@
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use crate::core::cache::SessionCache;
+use crate::core::pathjail;
 use crate::core::tokens::count_tokens;
 
 pub struct EditParams {
@@ -11,11 +12,121 @@ pub struct EditParams {
     pub create: bool,
 }
 
+/// Apply the project jail to an LLM-supplied edit target path. Unlike the
+/// read-side jail, edits may target a file that does not yet exist (when
+/// `create: true`), so we can't rely on `open_in_jail`'s existence check.
+/// Instead we validate the *parent* directory is inside the jail and
+/// prevent `..` escape via the same logical-normalize pass pathjail uses
+/// internally.
+///
+/// Returns the absolute path cleared for write, or an LLM-surfaceable error
+/// string. The jail is applied at this tool boundary rather than inside
+/// `std::fs::write` so CLI-driven writes (which aren't attacker-influenced)
+/// continue to work.
+fn jail_edit_target(path: &str, allow_create: bool) -> Result<PathBuf, String> {
+    if path.bytes().any(|b| b == 0 || b == b'\r' || b == b'\n') {
+        return Err(format!(
+            "ERROR: path '{path}' contains forbidden characters (blocked by lean-ctx path jail)"
+        ));
+    }
+
+    let jail_root = pathjail::session_jail_root()
+        .map_err(|e| format!("ERROR: {e} (blocked by lean-ctx path jail)"))?;
+
+    let target = if Path::new(path).is_absolute() {
+        PathBuf::from(path)
+    } else {
+        jail_root.join(path)
+    };
+
+    // For an existing file we can canonicalize. For create-new we can't —
+    // the file isn't there yet — so we canonicalize the nearest existing
+    // ancestor and append the remaining suffix, verifying the ancestor
+    // lands inside the jail.
+    let canonical = match std::fs::canonicalize(&target) {
+        Ok(p) => p,
+        Err(_) if allow_create => {
+            // Walk up until we find an ancestor that exists; canonicalize
+            // that; re-append the tail. If no ancestor exists, the write
+            // will fail anyway and we let that happen with a normal I/O
+            // error downstream.
+            // Walk up until we hit an existing ancestor, collecting the
+            // non-existent tail components front-to-back so we can re-join
+            // them in order after canonicalizing the ancestor.
+            //
+            // Note: we can't use `Path::join` on an empty PathBuf to start
+            // — that produces a trailing slash on the first iteration
+            // (e.g. `Path::new("file.txt").join("")` == `"file.txt/"`).
+            // Collecting names into a Vec and joining at the end avoids it.
+            let mut ancestor = target.as_path();
+            let mut tail_names: Vec<std::ffi::OsString> = Vec::new();
+            while !ancestor.exists() {
+                match ancestor.file_name() {
+                    Some(name) => tail_names.push(name.to_os_string()),
+                    None => return Err(format!("ERROR: cannot resolve '{path}'")),
+                }
+                match ancestor.parent() {
+                    Some(p) => ancestor = p,
+                    None => return Err(format!("ERROR: cannot resolve '{path}'")),
+                }
+            }
+            let canon_ancestor = std::fs::canonicalize(ancestor)
+                .map_err(|e| format!("ERROR: cannot resolve '{path}': {e}"))?;
+            let mut out = canon_ancestor;
+            for name in tail_names.iter().rev() {
+                out.push(name);
+            }
+            out
+        }
+        Err(e) => return Err(format!("ERROR: cannot resolve '{path}': {e}")),
+    };
+
+    let mut allowed = vec![jail_root];
+    allowed.extend(pathjail::allow_list_roots());
+    if !allowed.iter().any(|r| canonical.starts_with(r)) {
+        return Err(format!(
+            "ERROR: '{path}' is outside the project jail (blocked by lean-ctx path jail)"
+        ));
+    }
+    Ok(canonical)
+}
+
 pub fn handle(cache: &mut SessionCache, params: EditParams) -> String {
     let file_path = &params.path;
 
+    // Phase 0 security gate. Both create-new and edit-existing go through
+    // the same jail — an attacker-supplied path to `/etc/crontab` is as bad
+    // as one to `/etc/shadow`. We also enforce the size cap on the read
+    // path for edit-existing so a 10 GiB file can't OOM us before replace.
+    let jailed_path = match jail_edit_target(file_path, params.create) {
+        Ok(p) => p,
+        Err(e) => return e,
+    };
+    let jailed_str = jailed_path.to_string_lossy().to_string();
+    let file_path: &str = &jailed_str;
+
     if params.create {
         return handle_create(cache, file_path, &params.new_string);
+    }
+
+    // Enforce MAX_READ_BYTES for the pre-edit read. If the file is over cap,
+    // refuse the edit rather than silently truncate — partial edits would be
+    // catastrophic. Use the FD-based jail open so we can fstat safely.
+    let jail_root = match pathjail::session_jail_root() {
+        Ok(r) => r,
+        Err(e) => return format!("ERROR: {e} (blocked by lean-ctx path jail)"),
+    };
+    match pathjail::open_in_jail(file_path, &jail_root) {
+        Ok(jailed) if jailed.size_bytes > pathjail::max_read_bytes() => {
+            return format!(
+                "ERROR: {file_path} is {} bytes, exceeds MAX_READ_BYTES ({}). \
+                 Refusing to edit an oversized file. Adjust LCTX_MAX_READ_BYTES or edit manually.",
+                jailed.size_bytes,
+                pathjail::max_read_bytes()
+            );
+        }
+        Ok(_) => { /* size OK, proceed */ }
+        Err(e) => return format!("ERROR: {e} (blocked by lean-ctx path jail)"),
     }
 
     let raw_bytes = match std::fs::read(file_path) {
@@ -234,7 +345,31 @@ mod tests {
     use std::io::Write;
     use tempfile::NamedTempFile;
 
+    /// Tests create tempfiles in `std::env::temp_dir()` for isolation, which
+    /// lives outside any real project root. This helper registers that
+    /// directory in `LCTX_ALLOW_PATH` once per process so the path-jail
+    /// accepts them — equivalent to what a real user does when they need
+    /// to read outside their repo.
+    fn init_test_allow_path() {
+        use std::sync::Once;
+        static INIT: Once = Once::new();
+        INIT.call_once(|| {
+            let tmp = std::env::temp_dir();
+            // Canonicalize so the string-prefix check matches what the jail
+            // observes after canonicalization.
+            let tmp = std::fs::canonicalize(&tmp).unwrap_or(tmp);
+            let existing = std::env::var(crate::core::pathjail::ENV_ALLOW_PATHS).unwrap_or_default();
+            let joined = if existing.is_empty() {
+                tmp.display().to_string()
+            } else {
+                format!("{}:{}", existing, tmp.display())
+            };
+            std::env::set_var(crate::core::pathjail::ENV_ALLOW_PATHS, joined);
+        });
+    }
+
     fn make_temp(content: &str) -> NamedTempFile {
+        init_test_allow_path();
         let mut f = NamedTempFile::new().unwrap();
         f.write_all(content.as_bytes()).unwrap();
         f
@@ -295,6 +430,7 @@ mod tests {
 
     #[test]
     fn create_new_file() {
+        init_test_allow_path();
         let dir = tempfile::tempdir().unwrap();
         let path = dir.path().join("sub/new_file.txt");
         let mut cache = SessionCache::new();
@@ -308,7 +444,10 @@ mod tests {
                 create: true,
             },
         );
-        assert!(result.contains("created new_file.txt"));
+        assert!(
+            result.contains("created new_file.txt"),
+            "unexpected result: {result}"
+        );
         assert!(result.contains("3 lines"));
         assert!(path.exists());
     }

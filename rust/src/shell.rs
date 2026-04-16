@@ -102,15 +102,14 @@ fn combine_output(stdout: &str, stderr: &str) -> String {
 fn exec_buffered(command: &str, shell: &str, shell_flag: &str, cfg: &config::Config) -> i32 {
     let start = std::time::Instant::now();
 
-    let child = Command::new(shell)
+    let mut child = match Command::new(shell)
         .arg(shell_flag)
         .arg(command)
         .env("LEAN_CTX_ACTIVE", "1")
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
-        .spawn();
-
-    let child = match child {
+        .spawn()
+    {
         Ok(c) => c,
         Err(e) => {
             eprintln!("lean-ctx: failed to execute: {e}");
@@ -118,18 +117,30 @@ fn exec_buffered(command: &str, shell: &str, shell_flag: &str, cfg: &config::Con
         }
     };
 
-    let output = match child.wait_with_output() {
-        Ok(o) => o,
-        Err(e) => {
-            eprintln!("lean-ctx: failed to wait: {e}");
-            return 127;
-        }
-    };
+    // Bounded capture — same approach as the MCP path (server.rs). The CLI
+    // path is user-initiated so the DoS risk is lower, but a command like
+    // `cat /dev/urandom` piped through lean-ctx would still OOM without a
+    // cap. 2 MiB per stream is generous for any real build output.
+    let cap = crate::server::max_shell_capture_bytes();
+    let stdout_pipe = child.stdout.take();
+    let stderr_pipe = child.stderr.take();
+    let stdout_handle = std::thread::spawn(move || crate::server::read_pipe_bounded(stdout_pipe, cap));
+    let stderr_handle = std::thread::spawn(move || crate::server::read_pipe_bounded(stderr_pipe, cap));
+
+    let (stdout_bytes, stdout_truncated) = stdout_handle.join().unwrap_or_default();
+    let (stderr_bytes, stderr_truncated) = stderr_handle.join().unwrap_or_default();
+
+    if stdout_truncated || stderr_truncated {
+        std::thread::sleep(std::time::Duration::from_millis(100));
+        let _ = child.kill();
+    }
+
+    let wait_result = child.wait();
 
     let duration_ms = start.elapsed().as_millis();
-    let exit_code = output.status.code().unwrap_or(1);
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    let stderr = String::from_utf8_lossy(&output.stderr);
+    let exit_code = wait_result.map(|s| s.code().unwrap_or(1)).unwrap_or(1);
+    let stdout = String::from_utf8_lossy(&stdout_bytes);
+    let stderr = String::from_utf8_lossy(&stderr_bytes);
 
     let full_output = combine_output(&stdout, &stderr);
     let input_tokens = count_tokens(&full_output);
