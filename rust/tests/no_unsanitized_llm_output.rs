@@ -8,11 +8,11 @@
 //! for calls to `std::fs::read`, `std::fs::read_to_string`, `File::open`,
 //! and `std::fs::write` that appear outside of:
 //!   1. Test blocks (`#[cfg(test)]` / `mod tests`)
-//!   2. Explicitly whitelisted lines (see `WHITELIST` below)
+//!   2. Files explicitly whitelisted in `TOOL_WHITELIST` below
 //!
 //! HOW TO UPDATE: when you add a new tool that legitimately needs a raw
 //! filesystem call (e.g. for a non-LLM-facing operation like cache housekeeping),
-//! add the file + line comment pattern to WHITELIST below and document why
+//! add its file stem and reason to `TOOL_WHITELIST` below and document why
 //! the jail is not applicable.
 //!
 //! This test runs in CI alongside the normal test suite. It catches new leaks
