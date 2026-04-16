@@ -90,8 +90,25 @@ pub fn compress_output(text: &str, density: &super::config::OutputDensity) -> St
 }
 
 fn compress_terse(text: &str) -> String {
+    let mut in_fence = false;
     text.lines()
         .filter(|line| {
+            // SECURITY: preserve everything inside CSPRNG fence markers
+            // verbatim. Stripping blank lines or "banner" lines from
+            // fenced content would corrupt file data the LLM sees, and
+            // removing the closing marker would leave the context window
+            // permanently "open" in data mode.
+            if line.starts_with("<<<LCTX_") {
+                in_fence = true;
+                return true;
+            }
+            if in_fence {
+                if line.starts_with("LCTX_") && line.ends_with(">>>") {
+                    in_fence = false;
+                }
+                return true;
+            }
+
             let trimmed = line.trim();
             if trimmed.is_empty() {
                 return false;
@@ -110,11 +127,30 @@ fn compress_terse(text: &str) -> String {
 
 fn compress_ultra(text: &str) -> String {
     let terse = compress_terse(text);
-    let mut result = terse;
-    for (long, short) in ABBREVIATIONS {
-        result = result.replace(long, short);
-    }
-    result
+    // SECURITY: only abbreviate lines OUTSIDE CSPRNG fences. Replacing
+    // words inside fenced file content would corrupt the data.
+    let mut in_fence = false;
+    let lines: Vec<String> = terse
+        .lines()
+        .map(|line| {
+            if line.starts_with("<<<LCTX_") {
+                in_fence = true;
+                return line.to_string();
+            }
+            if in_fence {
+                if line.starts_with("LCTX_") && line.ends_with(">>>") {
+                    in_fence = false;
+                }
+                return line.to_string();
+            }
+            let mut result = line.to_string();
+            for (long, short) in ABBREVIATIONS {
+                result = result.replace(long, short);
+            }
+            result
+        })
+        .collect();
+    lines.join("\n")
 }
 
 const ABBREVIATIONS: &[(&str, &str)] = &[

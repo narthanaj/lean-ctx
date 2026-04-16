@@ -398,8 +398,14 @@ fn generate_git_log_stat(n: usize) -> String {
 #[test]
 fn audit_full_savings_pipeline() {
     use lean_ctx::core::cache::SessionCache;
+    use lean_ctx::core::pathjail;
     use lean_ctx::core::tokens::count_tokens;
     use lean_ctx::tools::CrpMode;
+
+    // Allow /tmp so test files written there pass the path jail.
+    let tmp_canon = std::fs::canonicalize(std::env::temp_dir()).unwrap();
+    let prev_allow = std::env::var_os(pathjail::ENV_ALLOW_PATHS);
+    std::env::set_var(pathjail::ENV_ALLOW_PATHS, &tmp_canon);
 
     eprintln!("\n{}", "=".repeat(70));
     eprintln!("  FULL SAVINGS PIPELINE AUDIT");
@@ -453,9 +459,11 @@ fn audit_full_savings_pipeline() {
         eprintln!("    output: {:?}", output2);
 
         assert!(is_cache_hit, "second read should be a cache hit");
+        // Threshold raised from 40→100 to account for the CSPRNG fence
+        // markers added by Phase B (~40 tokens of overhead).
         assert!(
-            output2_tokens < 40,
-            "cache hit stub should be <40 tokens, got {output2_tokens}"
+            output2_tokens < 100,
+            "cache hit stub should be <100 tokens, got {output2_tokens}"
         );
 
         let _ = std::fs::remove_file(&tmp);
@@ -614,6 +622,12 @@ fn audit_full_savings_pipeline() {
 
     eprintln!("\n  AUDIT COMPLETE — all checks passed");
     eprintln!("{}\n", "=".repeat(70));
+
+    // Restore LCTX_ALLOW_PATH.
+    match prev_allow {
+        Some(v) => std::env::set_var(pathjail::ENV_ALLOW_PATHS, v),
+        None => std::env::remove_var(pathjail::ENV_ALLOW_PATHS),
+    }
 }
 
 fn generate_git_log_standard(n: usize) -> String {

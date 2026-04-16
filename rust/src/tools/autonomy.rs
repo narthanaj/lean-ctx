@@ -4,6 +4,7 @@ use crate::core::cache::SessionCache;
 use crate::core::config::AutonomyConfig;
 use crate::core::graph_index::ProjectIndex;
 use crate::core::protocol;
+use crate::core::sanitize;
 use crate::core::tokens::count_tokens;
 use crate::tools::CrpMode;
 
@@ -73,9 +74,11 @@ pub fn session_lifecycle_pre_hook(
         return None;
     }
 
-    Some(format!(
-        "--- AUTO CONTEXT ---\n{result}\n--- END AUTO CONTEXT ---"
-    ))
+    // SECURITY (Phase B5): replace forgeable plain-text delimiters with a
+    // CSPRNG-fenced block. The old `--- AUTO CONTEXT ---` markers could be
+    // forged by any file or shell output that contained the same string.
+    let (fenced, _) = sanitize::fence_content(&result, "AUTO");
+    Some(fenced)
 }
 
 pub fn enrich_after_read(

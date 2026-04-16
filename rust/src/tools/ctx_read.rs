@@ -6,6 +6,7 @@ use crate::core::deps;
 use crate::core::entropy;
 use crate::core::pathjail::{self, JailError};
 use crate::core::protocol;
+use crate::core::sanitize;
 use crate::core::signatures;
 use crate::core::symbol_map::{self, SymbolMap};
 use crate::core::tokens::count_tokens;
@@ -86,12 +87,18 @@ fn jail_check_path(path: &str) -> Result<(), String> {
 }
 
 fn format_jail_error(err: JailError) -> String {
+    // SECURITY (Invariant 2): neutralize the error's Display output before
+    // surfacing it to the LLM. JailError variants embed the user-supplied
+    // path in their message — an attacker-crafted path like
+    // `<system-reminder>evil</system-reminder>` would otherwise echo raw
+    // tags into unfenced context.
+    let msg = sanitize::neutralize_metadata(&err.to_string());
     if err.is_security_event() {
         // TODO(Phase D4): structured log to ~/.lean-ctx/tool-calls.log so
         // operators can audit probing attempts.
-        format!("ERROR: {err} (blocked by lean-ctx path jail)")
+        format!("ERROR: {msg} (blocked by lean-ctx path jail)")
     } else {
-        format!("ERROR: {err}")
+        format!("ERROR: {msg}")
     }
 }
 
@@ -124,6 +131,27 @@ pub fn handle_fresh_with_task(
 }
 
 fn handle_with_options(
+    cache: &mut SessionCache,
+    path: &str,
+    mode: &str,
+    fresh: bool,
+    crp_mode: CrpMode,
+    task: Option<&str>,
+) -> String {
+    let output = handle_with_options_inner(cache, path, mode, fresh, crp_mode, task);
+    // SECURITY (Phase B3): wrap all non-error tool output in a CSPRNG-fenced
+    // block so the LLM treats file content as data, never as instructions.
+    // Error messages are lean-ctx-generated and safe after Invariant 2
+    // neutralization — fencing them would hide the "ERROR:" prefix from the
+    // LLM, breaking error detection.
+    if output.starts_with("ERROR:") {
+        return output;
+    }
+    let (fenced, _) = sanitize::fence_content(&output, "FILE");
+    fenced
+}
+
+fn handle_with_options_inner(
     cache: &mut SessionCache,
     path: &str,
     mode: &str,

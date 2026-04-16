@@ -4,6 +4,7 @@ use ignore::WalkBuilder;
 
 use crate::core::pathjail;
 use crate::core::protocol;
+use crate::core::sanitize;
 use crate::core::tokens::count_tokens;
 
 /// Apply the project jail to an LLM-supplied directory argument. Returns
@@ -15,25 +16,29 @@ use crate::core::tokens::count_tokens;
 /// yields is also inside. Per-entry jail checks would be prohibitively
 /// expensive for deep trees.
 fn jail_tree_root(path: &str) -> Result<PathBuf, String> {
+    let safe_path = sanitize::neutralize_metadata(path);
     if path.bytes().any(|b| b == 0 || b == b'\r' || b == b'\n') {
         return Err(format!(
-            "ERROR: path '{path}' contains forbidden characters (blocked by lean-ctx path jail)"
+            "ERROR: path '{safe_path}' contains forbidden characters (blocked by lean-ctx path jail)"
         ));
     }
     let jail_root = pathjail::session_jail_root()
-        .map_err(|e| format!("ERROR: {e} (blocked by lean-ctx path jail)"))?;
+        .map_err(|e| {
+            let msg = sanitize::neutralize_metadata(&e.to_string());
+            format!("ERROR: {msg} (blocked by lean-ctx path jail)")
+        })?;
     let target = if Path::new(path).is_absolute() {
         PathBuf::from(path)
     } else {
         jail_root.join(path)
     };
     let canonical = std::fs::canonicalize(&target)
-        .map_err(|e| format!("ERROR: cannot resolve '{path}': {e}"))?;
+        .map_err(|e| format!("ERROR: cannot resolve '{safe_path}': {e}"))?;
     let mut allowed = vec![jail_root];
     allowed.extend(pathjail::allow_list_roots());
     if !allowed.iter().any(|r| canonical.starts_with(r)) {
         return Err(format!(
-            "ERROR: '{path}' is outside the project jail (blocked by lean-ctx path jail)"
+            "ERROR: '{safe_path}' is outside the project jail (blocked by lean-ctx path jail)"
         ));
     }
     Ok(canonical)
@@ -48,7 +53,8 @@ pub fn handle(path: &str, depth: usize, show_hidden: bool) -> (String, usize) {
     };
     let root = canonical_root.as_path();
     if !root.is_dir() {
-        return (format!("ERROR: {path} is not a directory"), 0);
+        let safe_path = sanitize::neutralize_metadata(path);
+        return (format!("ERROR: {safe_path} is not a directory"), 0);
     }
 
     let raw_output = generate_raw_tree(root, depth, show_hidden);
@@ -58,7 +64,10 @@ pub fn handle(path: &str, depth: usize, show_hidden: bool) -> (String, usize) {
     let compact_tokens = count_tokens(&compact_output);
     let savings = protocol::format_savings(raw_tokens, compact_tokens);
 
-    (format!("{compact_output}\n{savings}"), raw_tokens)
+    // SECURITY (Phase B4): fence tree output — directory and file names are
+    // attacker-controllable. Savings line stays outside the fence.
+    let (fenced, _) = sanitize::fence_content(&compact_output, "TREE");
+    (format!("{fenced}\n{savings}"), raw_tokens)
 }
 
 fn generate_compact_tree(root: &Path, max_depth: usize, show_hidden: bool) -> String {

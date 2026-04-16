@@ -1,5 +1,6 @@
 use crate::core::patterns;
 use crate::core::protocol;
+use crate::core::sanitize;
 use crate::core::symbol_map::{self, SymbolMap};
 use crate::core::tokens::count_tokens;
 use crate::tools::CrpMode;
@@ -139,6 +140,15 @@ pub fn normalize_command_for_shell(command: &str) -> String {
 }
 
 pub fn handle(command: &str, output: &str, crp_mode: CrpMode) -> String {
+    let result = handle_inner(command, output, crp_mode);
+    // SECURITY (Phase B): wrap compressed shell output in a CSPRNG-fenced
+    // block. Attacker-controlled command output (commit messages, curl
+    // responses, file listings, etc.) cannot forge the close marker.
+    let (fenced, _) = sanitize::fence_content(&result, "SHELL");
+    fenced
+}
+
+fn handle_inner(command: &str, output: &str, crp_mode: CrpMode) -> String {
     let original_tokens = count_tokens(output);
 
     if contains_auth_flow(output) {
@@ -501,8 +511,10 @@ mod tests {
             !result.contains("auth/device-code flow detected"),
             "normal output must not trigger auth detection"
         );
+        // +200 accounts for the ~94-char CSPRNG fence overhead (Phase B)
+        // plus the savings line. The test's intent is: compression works.
         assert!(
-            result.len() < output.len() + 100,
+            result.len() < output.len() + 200,
             "normal output should be compressed, not inflated"
         );
     }

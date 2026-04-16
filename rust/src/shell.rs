@@ -150,8 +150,11 @@ fn exec_buffered(command: &str, shell: &str, shell_flag: &str, cfg: &config::Con
     stats::record(command, input_tokens, output_tokens);
 
     if !compressed.is_empty() {
-        let _ = io::stdout().write_all(compressed.as_bytes());
-        if !compressed.ends_with('\n') {
+        // SECURITY (Phase B): fence CLI shell hook output before it enters
+        // Claude's context via the terminal. Same CSPRNG scheme as MCP path.
+        let (fenced, _) = crate::core::sanitize::fence_content(&compressed, "SHELL");
+        let _ = io::stdout().write_all(fenced.as_bytes());
+        if !fenced.ends_with('\n') {
             let _ = io::stdout().write_all(b"\n");
         }
     }

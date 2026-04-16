@@ -429,7 +429,10 @@ impl ServerHandler for LeanCtxServer {
                 if raw {
                     let original = crate::core::tokens::count_tokens(&output);
                     self.record_call("ctx_shell", original, 0, None).await;
-                    output
+                    // SECURITY (Phase B): fence raw shell output too — it
+                    // bypasses compression but is still untrusted.
+                    let (fenced, _) = crate::core::sanitize::fence_content(&output, "SHELL");
+                    fenced
                 } else {
                     let result = crate::tools::ctx_shell::handle(&command, &output, self.crp_mode);
                     let original = crate::core::tokens::count_tokens(&output);

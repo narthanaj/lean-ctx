@@ -6,6 +6,7 @@ use regex::Regex;
 
 use crate::core::pathjail;
 use crate::core::protocol;
+use crate::core::sanitize;
 use crate::core::symbol_map::{self, SymbolMap};
 use crate::core::tokens::count_tokens;
 use crate::tools::CrpMode;
@@ -23,7 +24,10 @@ const MAX_WALK_DEPTH: usize = 20;
 /// which would be prohibitively expensive for a recursive search.
 fn jail_search_root(dir: &str) -> Result<std::path::PathBuf, String> {
     let jail_root = pathjail::session_jail_root()
-        .map_err(|e| format!("ERROR: {e} (blocked by lean-ctx path jail)"))?;
+        .map_err(|e| {
+            let msg = sanitize::neutralize_metadata(&e.to_string());
+            format!("ERROR: {msg} (blocked by lean-ctx path jail)")
+        })?;
 
     // A search root is a directory, so the regular `open_in_jail` (which
     // rejects non-regular files) can't vet it. Run the containment check
@@ -34,14 +38,15 @@ fn jail_search_root(dir: &str) -> Result<std::path::PathBuf, String> {
     } else {
         jail_root.join(dir)
     };
+    let safe_dir = sanitize::neutralize_metadata(dir);
     let canonical = std::fs::canonicalize(&target)
-        .map_err(|e| format!("ERROR: cannot resolve '{dir}': {e}"))?;
+        .map_err(|e| format!("ERROR: cannot resolve '{safe_dir}': {e}"))?;
 
     let mut allowed = vec![jail_root];
     allowed.extend(pathjail::allow_list_roots());
     if !allowed.iter().any(|r| canonical.starts_with(r)) {
         return Err(format!(
-            "ERROR: '{dir}' is outside the project jail (blocked by lean-ctx path jail)"
+            "ERROR: '{safe_dir}' is outside the project jail (blocked by lean-ctx path jail)"
         ));
     }
     Ok(canonical)
@@ -57,15 +62,19 @@ pub fn handle(
 ) -> (String, usize) {
     let re = match Regex::new(pattern) {
         Ok(r) => r,
-        Err(e) => return (format!("ERROR: invalid regex: {e}"), 0),
+        Err(e) => {
+            let msg = sanitize::neutralize_metadata(&e.to_string());
+            return (format!("ERROR: invalid regex: {msg}"), 0);
+        }
     };
 
     // Phase 0 security gate. Validates `dir` lives inside the project jail
     // before the walker can enumerate it. Reject NUL/CR/LF in the input as
     // a pre-check against smuggling via filename parsers.
+    let safe_dir = sanitize::neutralize_metadata(dir);
     if dir.bytes().any(|b| b == 0 || b == b'\r' || b == b'\n') {
         return (
-            format!("ERROR: path '{dir}' contains forbidden characters (blocked by lean-ctx path jail)"),
+            format!("ERROR: path '{safe_dir}' contains forbidden characters (blocked by lean-ctx path jail)"),
             0,
         );
     }
@@ -75,7 +84,7 @@ pub fn handle(
     };
     let root = canonical_root.as_path();
     if !root.exists() {
-        return (format!("ERROR: {dir} does not exist"), 0);
+        return (format!("ERROR: {safe_dir} does not exist"), 0);
     }
 
     let walker = WalkBuilder::new(root)
@@ -153,7 +162,8 @@ pub fn handle(
     }
 
     if matches.is_empty() {
-        let mut msg = format!("0 matches for '{pattern}' in {files_searched} files");
+        let safe_pattern = sanitize::neutralize_metadata(pattern);
+        let mut msg = format!("0 matches for '{safe_pattern}' in {files_searched} files");
         if files_skipped_size > 0 {
             msg.push_str(&format!(" ({files_skipped_size} large files skipped)"));
         }
@@ -211,7 +221,10 @@ pub fn handle(
     let sent = count_tokens(&result);
     let savings = protocol::format_savings(raw_tokens, sent);
 
-    (format!("{result}\n{savings}"), raw_tokens)
+    // SECURITY (Phase B4): fence search results — match lines contain
+    // attacker-controlled file content. Savings line stays outside the fence.
+    let (fenced, _) = sanitize::fence_content(&result, "SEARCH");
+    (format!("{fenced}\n{savings}"), raw_tokens)
 }
 
 fn is_binary_ext(path: &Path) -> bool {
