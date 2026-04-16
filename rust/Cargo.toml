@@ -124,6 +124,17 @@ ratatui = "0.30"
 crossterm = "0.28"
 rpassword = "7.4.0"
 
+# Phase-0 security hardening: CSPRNG source used by sanitize::fence_content and
+# the autonomy wrapper. Pulled in now so later phases don't need a Cargo.toml change.
+getrandom = "0.3"
+
+# Phase-0 security hardening: path-jail. rustix gives us a safe binding to
+# openat2(RESOLVE_BENEATH|RESOLVE_NO_SYMLINKS|RESOLVE_NO_MAGICLINKS) on Linux ≥5.6.
+# Scoped to cfg(unix) — Windows will fall back to a weaker canonicalize-based check
+# (documented as JailError::Unsupported in the module).
+[target.'cfg(unix)'.dependencies]
+rustix = { version = "1.1", features = ["fs"] }
+
 [profile.release]
 opt-level = "z"
 lto = true
@@ -133,3 +144,4 @@ panic = "abort"
 
 [dev-dependencies]
 tempfile = "3.27.0"
+serial_test = "3"

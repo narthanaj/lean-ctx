@@ -1,5 +1,6 @@
 use crate::core::cache::SessionCache;
 use crate::core::mode_predictor::{FileSignature, ModePredictor};
+use crate::core::pathjail;
 use crate::core::tokens::count_tokens;
 use crate::tools::CrpMode;
 
@@ -8,8 +9,18 @@ pub fn select_mode(cache: &SessionCache, path: &str) -> String {
 }
 
 pub fn select_mode_with_task(cache: &SessionCache, path: &str, _task: Option<&str>) -> String {
-    let content = match std::fs::read_to_string(path) {
-        Ok(c) => c,
+    // Phase 0 security gate. `select_mode` runs *before* ctx_read::handle is
+    // called from `handle()` below, so without a jail check here an LLM-
+    // supplied `/etc/passwd` would leak via the pre-read token count (or a
+    // timing side channel) even though ctx_read would later reject it. Jail
+    // the read first; fall back to "full" on any failure so the downstream
+    // ctx_read call gets a chance to return the rich jail-error string.
+    let jail_root = match pathjail::session_jail_root() {
+        Ok(r) => r,
+        Err(_) => return "full".to_string(),
+    };
+    let content = match pathjail::read_in_jail(path, &jail_root) {
+        Ok(r) => String::from_utf8_lossy(&r.bytes).into_owned(),
         Err(_) => return "full".to_string(),
     };
 

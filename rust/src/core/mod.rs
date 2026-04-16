@@ -7,6 +7,8 @@ pub mod benchmark;
 pub mod buddy;
 pub mod cache;
 pub mod call_graph;
+pub mod pathjail;
+pub mod sanitize;
 pub mod cli_cache;
 pub mod codebook;
 pub mod compressor;

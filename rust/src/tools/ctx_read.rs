@@ -4,6 +4,7 @@ use crate::core::cache::SessionCache;
 use crate::core::compressor;
 use crate::core::deps;
 use crate::core::entropy;
+use crate::core::pathjail::{self, JailError};
 use crate::core::protocol;
 use crate::core::signatures;
 use crate::core::symbol_map::{self, SymbolMap};
@@ -16,11 +17,81 @@ fn append_compressed_hint(output: &str, file_path: &str) -> String {
     format!("{output}\n{COMPRESSED_HINT}\n  ctx_read(\"{file_path}\", mode=\"full\")")
 }
 
+/// Low-level, un-jailed file read. Kept for internal callers (CLI, cache
+/// refresh, test harnesses) that have already validated the path via some
+/// other means. **MCP tool handlers must NOT call this directly** — they
+/// must route through `handle_with_options`, which applies the path-jail
+/// gate at the tool boundary (the attacker-facing edge) before reaching
+/// this function.
+///
+/// The jail is applied at the tool boundary rather than here so that a human
+/// using `lean-ctx read /tmp/foo.txt` from the shell continues to work —
+/// the attack surface is LLM-supplied paths via MCP, not CLI arguments the
+/// user typed themselves.
 pub fn read_file_lossy(path: &str) -> Result<String, std::io::Error> {
     let bytes = std::fs::read(path)?;
     match String::from_utf8(bytes) {
         Ok(s) => Ok(s),
         Err(e) => Ok(String::from_utf8_lossy(e.as_bytes()).into_owned()),
+    }
+}
+
+/// Marker appended to file content when the size cap kicked in. Plain text
+/// for Phase 0; Phase B3 will move it inside the CSPRNG fence so an attacker
+/// can't forge the same string inside their own content.
+const TRUNCATED_BY_SIZE_CAP: &str = "\n[lean-ctx: truncated — file exceeds MAX_READ_BYTES; see LCTX_MAX_READ_BYTES to adjust]";
+
+/// Read an LLM-supplied path through the path jail, applying the size cap.
+///
+/// This is the single choke point for MCP-facing file reads in `ctx_read`:
+/// it runs the jail check, opens via `openat2(RESOLVE_BENEATH|...)` on
+/// Linux, applies `MAX_READ_BYTES` (capping at fstat-reported size before
+/// any read completes), and returns UTF-8 (lossy on invalid sequences) so
+/// downstream compression code sees the same shape it always has.
+///
+/// The returned `Err(String)` is already formatted for surface to the LLM
+/// — callers just `return e` from their handler.
+fn read_through_jail(path: &str) -> Result<String, String> {
+    let jail_root = pathjail::session_jail_root().map_err(format_jail_error)?;
+    let result = pathjail::read_in_jail(path, &jail_root).map_err(format_jail_error)?;
+
+    let mut text = match String::from_utf8(result.bytes) {
+        Ok(s) => s,
+        Err(e) => String::from_utf8_lossy(e.as_bytes()).into_owned(),
+    };
+
+    if result.truncated {
+        text.push_str(TRUNCATED_BY_SIZE_CAP);
+    }
+
+    Ok(text)
+}
+
+/// Path-only jail validation (no read). Used at the top of
+/// `handle_with_options` to reject escapes before ANY code path — including
+/// diff and auto-delta — touches the filesystem. The actual content read
+/// happens downstream via `read_through_jail` (cache miss) or
+/// `read_file_lossy` (cache hit re-read, where the path was already
+/// validated here).
+fn jail_check_path(path: &str) -> Result<(), String> {
+    let jail_root = pathjail::session_jail_root().map_err(format_jail_error)?;
+    // open_in_jail validates + opens the FD; we drop the FD immediately
+    // since downstream code does its own read. The kernel already confirmed
+    // via openat2 that the path lives inside the jail — the residual TOCTOU
+    // window between this check and the downstream read is the same narrow
+    // gap documented in Phase 0 (closed fully in Phase B3 when all reads go
+    // through the jailed FD).
+    let _jailed = pathjail::open_in_jail(path, &jail_root).map_err(format_jail_error)?;
+    Ok(())
+}
+
+fn format_jail_error(err: JailError) -> String {
+    if err.is_security_event() {
+        // TODO(Phase D4): structured log to ~/.lean-ctx/tool-calls.log so
+        // operators can audit probing attempts.
+        format!("ERROR: {err} (blocked by lean-ctx path jail)")
+    } else {
+        format!("ERROR: {err}")
     }
 }
 
@@ -71,6 +142,19 @@ fn handle_with_options(
         cache.invalidate(path);
     }
 
+    // Phase 0 security gate. This MUST run before ANY code path that touches
+    // the filesystem — including diff mode and the auto-delta re-read on
+    // cache hits. Moving the check here (top of the function, after only
+    // cache invalidation) closes the bypass Copilot flagged where
+    // handle_diff and handle_full_with_auto_delta called read_file_lossy
+    // (unjailed) before the jail check ran.
+    //
+    // Cache-only paths (returning existing.content without disk I/O) are
+    // safe — they return previously-validated bytes.
+    if let Err(e) = jail_check_path(path) {
+        return e;
+    }
+
     if mode == "diff" {
         return handle_diff(cache, path, &file_ref);
     }
@@ -94,9 +178,10 @@ fn handle_with_options(
         );
     }
 
-    let content = match read_file_lossy(path) {
+    // Fresh disk read for cache miss — content comes through the jail.
+    let content = match read_through_jail(path) {
         Ok(c) => c,
-        Err(e) => return format!("ERROR: {e}"),
+        Err(e) => return e,
     };
 
     let similar_hint = find_semantic_similar(path, &content);

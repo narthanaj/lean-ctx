@@ -4,6 +4,7 @@ use std::path::Path;
 use ignore::WalkBuilder;
 use regex::Regex;
 
+use crate::core::pathjail;
 use crate::core::protocol;
 use crate::core::symbol_map::{self, SymbolMap};
 use crate::core::tokens::count_tokens;
@@ -11,6 +12,40 @@ use crate::tools::CrpMode;
 
 const MAX_FILE_SIZE: u64 = 512_000;
 const MAX_WALK_DEPTH: usize = 20;
+
+/// Apply the project jail to a user-supplied search root and return a
+/// usable PathBuf. Errors are stringified for direct return from `handle`.
+///
+/// The walker below does NOT follow symlinks by default (`ignore::WalkBuilder`
+/// requires `.follow_links(true)` to enable it, which we never call), so
+/// every file the walker yields is inside the root we validated here. That
+/// means we don't need to run the jail check on each file individually —
+/// which would be prohibitively expensive for a recursive search.
+fn jail_search_root(dir: &str) -> Result<std::path::PathBuf, String> {
+    let jail_root = pathjail::session_jail_root()
+        .map_err(|e| format!("ERROR: {e} (blocked by lean-ctx path jail)"))?;
+
+    // A search root is a directory, so the regular `open_in_jail` (which
+    // rejects non-regular files) can't vet it. Run the containment check
+    // at the path level instead — that's enough because the walker's
+    // no-follow-symlinks default means it can't escape later.
+    let target = if Path::new(dir).is_absolute() {
+        std::path::PathBuf::from(dir)
+    } else {
+        jail_root.join(dir)
+    };
+    let canonical = std::fs::canonicalize(&target)
+        .map_err(|e| format!("ERROR: cannot resolve '{dir}': {e}"))?;
+
+    let mut allowed = vec![jail_root];
+    allowed.extend(pathjail::allow_list_roots());
+    if !allowed.iter().any(|r| canonical.starts_with(r)) {
+        return Err(format!(
+            "ERROR: '{dir}' is outside the project jail (blocked by lean-ctx path jail)"
+        ));
+    }
+    Ok(canonical)
+}
 
 pub fn handle(
     pattern: &str,
@@ -25,7 +60,20 @@ pub fn handle(
         Err(e) => return (format!("ERROR: invalid regex: {e}"), 0),
     };
 
-    let root = Path::new(dir);
+    // Phase 0 security gate. Validates `dir` lives inside the project jail
+    // before the walker can enumerate it. Reject NUL/CR/LF in the input as
+    // a pre-check against smuggling via filename parsers.
+    if dir.bytes().any(|b| b == 0 || b == b'\r' || b == b'\n') {
+        return (
+            format!("ERROR: path '{dir}' contains forbidden characters (blocked by lean-ctx path jail)"),
+            0,
+        );
+    }
+    let canonical_root = match jail_search_root(dir) {
+        Ok(r) => r,
+        Err(e) => return (e, 0),
+    };
+    let root = canonical_root.as_path();
     if !root.exists() {
         return (format!("ERROR: {dir} does not exist"), 0);
     }
@@ -46,6 +94,14 @@ pub fn handle(
 
     for entry in walker.filter_map(|e| e.ok()) {
         if entry.file_type().is_none_or(|ft| ft.is_dir()) {
+            continue;
+        }
+
+        // Phase 0 security: reject symlink entries. WalkBuilder doesn't
+        // follow symlinks for directory traversal, but it still yields
+        // symlink DirEntry items. read_to_string below would dereference
+        // the symlink and read the target — potentially outside the jail.
+        if entry.file_type().is_some_and(|ft| ft.is_symlink()) {
             continue;
         }
 
