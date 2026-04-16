@@ -625,10 +625,18 @@ impl GotchaStore {
                 String::new()
             };
 
-            lines.push(format!("[{prefix}{label}] {}", g.trigger));
+            // Phase A security: neutralize attacker-influenceable fields.
+            // trigger + resolution are the primary injection targets; the
+            // other fields (prefix, label, age, counts) are system-generated.
+            let neutralize = crate::core::sanitize::neutralize_metadata;
+            lines.push(format!("[{prefix}{label}] {}", neutralize(&g.trigger)));
             lines.push(format!(
                 "  FIX: {} (seen {}x{}{}, {})",
-                g.resolution, g.occurrences, source_hint, prevented, age
+                neutralize(&g.resolution),
+                g.occurrences,
+                source_hint,
+                prevented,
+                age
             ));
         }
 

@@ -457,9 +457,20 @@ impl ProjectKnowledge {
         });
         top_facts.truncate(10);
 
+        // Phase A security: neutralize every user-supplied field so an
+        // attacker who writes <system-reminder> into a fact value can't
+        // inject forged tags into the LLM's instruction stream.
+        let neutralize = crate::core::sanitize::neutralize_metadata;
         let items: Vec<String> = top_facts
             .iter()
-            .map(|f| format!("{}/{}={}", f.category, f.key, f.value))
+            .map(|f| {
+                format!(
+                    "{}/{}={}",
+                    neutralize(&f.category),
+                    neutralize(&f.key),
+                    neutralize(&f.value)
+                )
+            })
             .collect();
 
         format!("FACTS:{}", items.join("|"))
