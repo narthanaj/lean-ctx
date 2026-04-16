@@ -81,7 +81,7 @@ fn remove_shell_hook(home: &Path) -> bool {
 fn remove_mcp_configs(home: &Path) -> bool {
     let configs: Vec<(&str, PathBuf)> = vec![
         ("Cursor", home.join(".cursor/mcp.json")),
-        ("Claude Code", home.join(".claude.json")),
+        ("Claude Code", crate::setup::claude_config_json_path(home)),
         ("Windsurf", home.join(".codeium/windsurf/mcp_config.json")),
         ("Gemini CLI", home.join(".gemini/settings/mcp.json")),
         (
@@ -159,7 +159,10 @@ fn remove_mcp_configs(home: &Path) -> bool {
 
 fn remove_rules_files(home: &Path) -> bool {
     let rules_files: Vec<(&str, PathBuf)> = vec![
-        ("Claude Code", home.join(".claude/CLAUDE.md")),
+        (
+            "Claude Code",
+            crate::setup::claude_config_dir(home).join("CLAUDE.md"),
+        ),
         ("Cursor", home.join(".cursor/rules/lean-ctx.mdc")),
         ("Gemini CLI", home.join(".gemini/GEMINI.md")),
         (
@@ -218,8 +221,8 @@ fn remove_rules_files(home: &Path) -> bool {
 
 fn remove_hook_files(home: &Path) -> bool {
     let hook_files: Vec<PathBuf> = vec![
-        home.join(".claude/hooks/lean-ctx-rewrite.sh"),
-        home.join(".claude/hooks/lean-ctx-redirect.sh"),
+        crate::setup::claude_config_dir(home).join("hooks/lean-ctx-rewrite.sh"),
+        crate::setup::claude_config_dir(home).join("hooks/lean-ctx-redirect.sh"),
         home.join(".cursor/hooks/lean-ctx-rewrite.sh"),
         home.join(".cursor/hooks/lean-ctx-redirect.sh"),
         home.join(".gemini/hooks/lean-ctx-rewrite-gemini.sh"),

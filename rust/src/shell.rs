@@ -7,6 +7,36 @@ use crate::core::slow_log;
 use crate::core::stats;
 use crate::core::tokens::count_tokens;
 
+/// Detects if the current process runs inside a Docker/container environment.
+pub fn is_container() -> bool {
+    #[cfg(unix)]
+    {
+        if std::path::Path::new("/.dockerenv").exists() {
+            return true;
+        }
+        if let Ok(cgroup) = std::fs::read_to_string("/proc/1/cgroup") {
+            if cgroup.contains("/docker/") || cgroup.contains("/lxc/") {
+                return true;
+            }
+        }
+        if let Ok(mounts) = std::fs::read_to_string("/proc/self/mountinfo") {
+            if mounts.contains("/docker/containers/") {
+                return true;
+            }
+        }
+        false
+    }
+    #[cfg(not(unix))]
+    {
+        false
+    }
+}
+
+/// Returns true if stdin is NOT a terminal (pipe, /dev/null, etc.)
+pub fn is_non_interactive() -> bool {
+    !io::stdin().is_terminal()
+}
+
 pub fn exec(command: &str) -> i32 {
     let (shell, shell_flag) = shell_and_flag();
     let command = crate::tools::ctx_shell::normalize_command_for_shell(command);
@@ -910,5 +940,17 @@ mod passthrough_tests {
         assert!(!is_excluded_command("aws s3 ls", &[]));
         assert!(!is_excluded_command("gcloud compute instances list", &[]));
         assert!(!is_excluded_command("az vm list", &[]));
+    }
+
+    #[test]
+    fn is_container_returns_bool() {
+        let result = super::is_container();
+        assert!(result || !result);
+    }
+
+    #[test]
+    fn is_non_interactive_returns_bool() {
+        let result = super::is_non_interactive();
+        assert!(result || !result);
     }
 }

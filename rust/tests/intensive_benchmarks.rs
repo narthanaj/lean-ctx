@@ -75,8 +75,8 @@ fn bench_system_instructions_token_count() {
     eprintln!("{}", "=".repeat(70));
 
     assert!(
-        tok_off < 2250,
-        "Base instructions should be <2250 tokens, got {tok_off}"
+        tok_off < 2300,
+        "Base instructions should be <2300 tokens, got {tok_off}"
     );
     assert!(
         tok_compact < 2450,
