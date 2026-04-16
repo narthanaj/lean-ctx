@@ -67,6 +67,24 @@ fn read_through_jail(path: &str) -> Result<String, String> {
     Ok(text)
 }
 
+/// Path-only jail validation (no read). Used at the top of
+/// `handle_with_options` to reject escapes before ANY code path — including
+/// diff and auto-delta — touches the filesystem. The actual content read
+/// happens downstream via `read_through_jail` (cache miss) or
+/// `read_file_lossy` (cache hit re-read, where the path was already
+/// validated here).
+fn jail_check_path(path: &str) -> Result<(), String> {
+    let jail_root = pathjail::session_jail_root().map_err(format_jail_error)?;
+    // open_in_jail validates + opens the FD; we drop the FD immediately
+    // since downstream code does its own read. The kernel already confirmed
+    // via openat2 that the path lives inside the jail — the residual TOCTOU
+    // window between this check and the downstream read is the same narrow
+    // gap documented in Phase 0 (closed fully in Phase B3 when all reads go
+    // through the jailed FD).
+    let _jailed = pathjail::open_in_jail(path, &jail_root).map_err(format_jail_error)?;
+    Ok(())
+}
+
 fn format_jail_error(err: JailError) -> String {
     if err.is_security_event() {
         // TODO(Phase D4): structured log to ~/.lean-ctx/tool-calls.log so
@@ -124,6 +142,19 @@ fn handle_with_options(
         cache.invalidate(path);
     }
 
+    // Phase 0 security gate. This MUST run before ANY code path that touches
+    // the filesystem — including diff mode and the auto-delta re-read on
+    // cache hits. Moving the check here (top of the function, after only
+    // cache invalidation) closes the bypass Copilot flagged where
+    // handle_diff and handle_full_with_auto_delta called read_file_lossy
+    // (unjailed) before the jail check ran.
+    //
+    // Cache-only paths (returning existing.content without disk I/O) are
+    // safe — they return previously-validated bytes.
+    if let Err(e) = jail_check_path(path) {
+        return e;
+    }
+
     if mode == "diff" {
         return handle_diff(cache, path, &file_ref);
     }
@@ -147,11 +178,7 @@ fn handle_with_options(
         );
     }
 
-    // Phase 0 security gate: only *fresh reads* from disk are jailed. Cache
-    // hits above return the previously-validated bytes without re-touching
-    // the filesystem, so they don't need re-checking. Everything that
-    // reaches this point is about to go to `std::fs::read` / `std::fs::File`
-    // and MUST be proven to live inside the project jail first.
+    // Fresh disk read for cache miss — content comes through the jail.
     let content = match read_through_jail(path) {
         Ok(c) => c,
         Err(e) => return e,

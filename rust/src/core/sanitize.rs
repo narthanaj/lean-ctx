@@ -43,25 +43,54 @@ const MAX_METADATA_LEN: usize = 200;
 /// LLM cannot undo the lookalike substitution to reconstruct a working
 /// `<system-reminder>` tag.
 pub fn neutralize_metadata(s: &str) -> String {
-    let mut out = String::with_capacity(s.len());
+    // Single-pass with early exit: we process at most MAX_METADATA_LEN + a
+    // small slack of output chars. This prevents an attacker from injecting
+    // a multi-megabyte knowledge fact value that burns CPU and memory in the
+    // char-by-char loop before we'd truncate the result. The slack accounts
+    // for consecutive newlines that will be collapsed later.
+    const SLACK: usize = 64;
+    let budget = MAX_METADATA_LEN + SLACK;
+
+    let mut out = String::with_capacity(budget.min(s.len()));
+    let mut consecutive_newlines: u32 = 0;
 
     for ch in s.chars() {
+        if out.len() >= budget {
+            break; // early exit — we'll truncate to MAX_METADATA_LEN below
+        }
+
         match ch {
-            '<' => out.push('\u{2039}'), // ‹
-            '>' => out.push('\u{203A}'), // ›
-            '`' => out.push('\''),
+            '<' => {
+                consecutive_newlines = 0;
+                out.push('\u{2039}');
+            }
+            '>' => {
+                consecutive_newlines = 0;
+                out.push('\u{203A}');
+            }
+            '`' => {
+                consecutive_newlines = 0;
+                out.push('\'');
+            }
+            '\n' => {
+                consecutive_newlines += 1;
+                // Collapse \n{3,} to \n\n in a single pass.
+                if consecutive_newlines <= 2 {
+                    out.push('\n');
+                }
+                // else: swallow the extra newline
+            }
             // Strip C0 control chars except tab and newline.
-            c if c.is_control() && c != '\t' && c != '\n' => {}
-            other => out.push(other),
+            c if c.is_control() && c != '\t' => {}
+            other => {
+                consecutive_newlines = 0;
+                out.push(other);
+            }
         }
     }
 
-    // Collapse excessive newlines: replace \n{3,} with \n\n.
-    while out.contains("\n\n\n") {
-        out = out.replace("\n\n\n", "\n\n");
-    }
-
-    // UTF-8-safe truncation.
+    // UTF-8-safe truncation (the early exit above may have left us slightly
+    // over MAX_METADATA_LEN due to the slack).
     if out.chars().count() > MAX_METADATA_LEN {
         let truncated: String = out.chars().take(MAX_METADATA_LEN - 1).collect();
         out = format!("{truncated}\u{2026}"); // … = U+2026 HORIZONTAL ELLIPSIS

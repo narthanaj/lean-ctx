@@ -97,6 +97,14 @@ pub fn handle(
             continue;
         }
 
+        // Phase 0 security: reject symlink entries. WalkBuilder doesn't
+        // follow symlinks for directory traversal, but it still yields
+        // symlink DirEntry items. read_to_string below would dereference
+        // the symlink and read the target — potentially outside the jail.
+        if entry.file_type().is_some_and(|ft| ft.is_symlink()) {
+            continue;
+        }
+
         let path = entry.path();
 
         if is_binary_ext(path) || is_generated_file(path) {

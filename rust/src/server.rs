@@ -1496,15 +1496,16 @@ pub fn read_pipe_bounded(
         return (Vec::new(), false);
     };
     use std::io::Read;
-    let mut buf = Vec::with_capacity(cap.min(64 * 1024) as usize);
-    let _ = pipe.take(cap).read_to_end(&mut buf);
+    // Read cap+1 bytes: if we get more than cap, the stream was truncated.
+    // This avoids a false positive when the stream is exactly cap bytes.
+    let limit = cap.saturating_add(1);
+    let mut buf = Vec::with_capacity(limit.min(64 * 1024) as usize);
+    let _ = pipe.take(limit).read_to_end(&mut buf);
 
-    // Attempt one more byte to detect truncation (same technique as
-    // pathjail::read_capped).
-    // But we already consumed `cap` bytes from `take()`, so we need
-    // to read from the original reader — which was consumed by `take()`.
-    // Instead, detect truncation by checking buf.len() == cap.
-    let truncated = buf.len() as u64 >= cap;
+    let truncated = buf.len() as u64 > cap;
+    if truncated {
+        buf.truncate(cap as usize);
+    }
     (buf, truncated)
 }
 

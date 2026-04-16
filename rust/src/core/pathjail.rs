@@ -520,6 +520,7 @@ mod unix {
         original_input: &str,
     ) -> Result<File, JailError> {
         use rustix::fs::{Mode, OFlags};
+        use std::ffi::OsStr;
         use std::os::fd::{AsFd, OwnedFd};
 
         let (anchor, relative) = split_target_over_roots(target, roots)
